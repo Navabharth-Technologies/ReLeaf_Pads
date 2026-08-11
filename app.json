@@ -22,6 +22,9 @@
       },
       "predictiveBackGestureEnabled": false
     },
+    "experiments": {
+      "baseUrl": "/ReLeaf_Pads"
+    },
     "web": {
       "favicon": "./assets/logo.png"
     },
