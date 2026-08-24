@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
@@ -8,6 +8,7 @@ import { Package, User, LogOut, CheckCircle, Navigation, MapPin } from 'lucide-r
 export default function DeliveryDashboard() {
   const router = useRouter();
   const { currentDeliveryPartner, logoutDeliveryPartner, togglePartnerStatus, orders, customers } = useStore();
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'COMPLETED'>('ACTIVE');
 
   useEffect(() => {
     if (!currentDeliveryPartner) {
@@ -21,6 +22,11 @@ export default function DeliveryDashboard() {
   const activeOrders = orders.filter(
     o => o.deliveryPartnerId === currentDeliveryPartner.id && 
          (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
+  );
+
+  const completedOrders = orders.filter(
+    o => o.deliveryPartnerId === currentDeliveryPartner.id && 
+         o.status === 'DELIVERED'
   );
 
   const completedOrdersCount = currentDeliveryPartner.completedOrders || 0;
@@ -132,21 +138,53 @@ export default function DeliveryDashboard() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Active Deliveries</Text>
-        {activeOrders.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Package size={48} color={colors.border} />
-            <Text style={styles.emptyStateText}>No active deliveries at the moment.</Text>
-            <Text style={styles.emptyStateSubtext}>Take a break or check back later!</Text>
-          </View>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === 'ACTIVE' && styles.activeTabBtn]}
+            onPress={() => setActiveTab('ACTIVE')}
+          >
+            <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === 'COMPLETED' && styles.activeTabBtn]}
+            onPress={() => setActiveTab('COMPLETED')}
+          >
+            <Text style={[styles.tabText, activeTab === 'COMPLETED' && styles.activeTabText]}>Completed Today</Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeTab === 'ACTIVE' ? (
+          activeOrders.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Package size={48} color={colors.border} />
+              <Text style={styles.emptyStateText}>No active deliveries at the moment.</Text>
+              <Text style={styles.emptyStateSubtext}>Take a break or check back later!</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={activeOrders}
+              renderItem={renderOrderItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+            />
+          )
         ) : (
-          <FlatList
-            data={activeOrders}
-            renderItem={renderOrderItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-          />
+          completedOrders.length === 0 ? (
+            <View style={styles.emptyState}>
+              <CheckCircle size={48} color={colors.border} />
+              <Text style={styles.emptyStateText}>No completed deliveries yet.</Text>
+              <Text style={styles.emptyStateSubtext}>Keep up the good work!</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={completedOrders}
+              renderItem={renderOrderItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+            />
+          )
         )}
       </View>
     </View>
@@ -247,11 +285,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
+  tabContainer: {
+    flexDirection: 'row',
     marginBottom: 16,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  activeTabBtn: {
+    backgroundColor: colors.softPurple,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.mutedText,
+  },
+  activeTabText: {
+    color: colors.primary,
   },
   listContainer: {
     paddingBottom: 20,

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { colors } from '../../src/theme/colors';
-import { LayoutDashboard, ShoppingBag, Users, Package } from 'lucide-react-native';
+import { LayoutDashboard, ShoppingBag, Users, Package, Gift } from 'lucide-react-native';
 
 export default function OwnerLayout() {
   return (
@@ -37,6 +37,13 @@ export default function OwnerLayout() {
         options={{ 
           title: 'Products',
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />
+        }} 
+      />
+      <Tabs.Screen 
+        name="coupons" 
+        options={{ 
+          title: 'Coupons',
+          tabBarIcon: ({ color, size }) => <Gift size={size} color={color} />
         }} 
       />
     </Tabs>

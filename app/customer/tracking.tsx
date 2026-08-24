@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ export default function CustomerTrackingScreen() {
   const router = useRouter();
   const { orders, currentCustomer, deliveryPartners, cancelOrder } = useStore();
   const [now, setNow] = useState(Date.now());
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Update time for the demo "fast forward" to re-render
   useEffect(() => {
@@ -46,24 +47,7 @@ export default function CustomerTrackingScreen() {
   const canCancel = !['PACKED', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(activeOrder.status);
 
   const handleCancel = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to cancel this order?')) {
-        cancelOrder(activeOrder.id);
-        router.back();
-      }
-    } else {
-      Alert.alert(
-        'Cancel Order',
-        'Are you sure you want to cancel this order?',
-        [
-          { text: 'No', style: 'cancel' },
-          { text: 'Yes, Cancel', style: 'destructive', onPress: () => {
-            cancelOrder(activeOrder.id);
-            router.back();
-          }}
-        ]
-      );
-    }
+    setShowCancelModal(true);
   };
 
   const getTimelineSteps = () => {
@@ -151,14 +135,39 @@ export default function CustomerTrackingScreen() {
           </View>
         )}
 
+        {activeOrder.status === 'OUT_FOR_DELIVERY' && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Delivery Tracking Map</Text>
+            <View style={styles.trackingMapContainer}>
+              <View style={styles.mapPoint}>
+                <Text style={styles.mapEmoji}>📍</Text>
+                <Text style={styles.mapPointText}>ReLeaf Dispatch Point</Text>
+              </View>
+              <View style={styles.mapLineContainer}>
+                <View style={styles.mapLine} />
+                <View style={styles.mapTruck}>
+                  <Text style={styles.mapEmoji}>🚚</Text>
+                </View>
+                <View style={styles.mapLine} />
+              </View>
+              <View style={styles.mapPoint}>
+                <Text style={styles.mapEmoji}>📍</Text>
+                <Text style={styles.mapPointText}>Customer ({currentCustomer?.name})</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           <View style={styles.addressRow}>
             <MapPin size={20} color={colors.primary} style={{ marginTop: 2 }} />
             <View style={styles.addressDetails}>
               <Text style={styles.addressName}>{currentCustomer?.name}</Text>
-              <Text style={styles.addressText}>{currentCustomer?.addresses[0]?.houseNo}, {currentCustomer?.addresses[0]?.street}</Text>
+              <Text style={styles.addressText}>{currentCustomer?.addresses[0]?.houseNumber ? `${currentCustomer.addresses[0].houseNumber}, ` : ''}{currentCustomer?.addresses[0]?.buildingName ? `${currentCustomer.addresses[0].buildingName}` : ''}</Text>
+              <Text style={styles.addressText}>{currentCustomer?.addresses[0]?.street}, {currentCustomer?.addresses[0]?.area}</Text>
               <Text style={styles.addressText}>{currentCustomer?.addresses[0]?.landmark && `${currentCustomer?.addresses[0].landmark}, `}{currentCustomer?.addresses[0]?.city} - {currentCustomer?.addresses[0]?.pincode}</Text>
+              <Text style={styles.locationPinText}>📍 Location Confirmed</Text>
             </View>
           </View>
         </View>
@@ -171,6 +180,31 @@ export default function CustomerTrackingScreen() {
         )}
 
       </ScrollView>
+
+      <Modal
+        visible={showCancelModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Cancel Order</Text>
+            <Text style={styles.modalMessage}>Are you sure you want to cancel this order?</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowCancelModal(false)}>
+                <Text style={styles.modalBtnCancelText}>No</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={() => {
+                setShowCancelModal(false);
+                cancelOrder(activeOrder.id);
+                router.back();
+              }}>
+                <Text style={styles.modalBtnConfirmText}>Yes, Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -224,6 +258,23 @@ const styles = StyleSheet.create({
   addressDetails: { marginLeft: 12, flex: 1 },
   addressName: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 },
   addressText: { fontSize: 14, color: colors.mutedText, lineHeight: 20 },
+  locationPinText: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: 4 },
   cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'red', backgroundColor: '#FFF0F0' },
-  cancelBtnText: { color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 8 }
+  cancelBtnText: { color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 8 },
+  trackingMapContainer: { paddingVertical: 12, alignItems: 'center' },
+  mapPoint: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  mapEmoji: { fontSize: 18, marginRight: 8 },
+  mapPointText: { fontSize: 14, fontWeight: '600', color: colors.darkPurple },
+  mapLineContainer: { alignItems: 'center', marginVertical: 8 },
+  mapLine: { width: 2, height: 30, backgroundColor: colors.border },
+  mapTruck: { backgroundColor: colors.softPurple, padding: 8, borderRadius: 20, marginVertical: 4, borderWidth: 1, borderColor: colors.primary },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', maxWidth: 360, backgroundColor: colors.white, borderRadius: 16, padding: 24, alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.darkPurple, marginBottom: 12 },
+  modalMessage: { fontSize: 15, color: colors.text, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+  modalActions: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', gap: 12 },
+  modalBtnCancel: { flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: '#F3F4F6', alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  modalBtnCancelText: { fontSize: 15, fontWeight: '600', color: colors.text },
+  modalBtnConfirm: { flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: 'red', alignItems: 'center' },
+  modalBtnConfirmText: { fontSize: 15, fontWeight: '600', color: colors.white }
 });

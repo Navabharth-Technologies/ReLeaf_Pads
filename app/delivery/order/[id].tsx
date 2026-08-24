@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '../../../src/theme/colors';
 import { useStore } from '../../../src/store/useStore';
-import { MapPin, Phone, User, Package, Check, ArrowRight } from 'lucide-react-native';
+import { MapPin, Phone, User, Package, Check, ArrowRight, Navigation } from 'lucide-react-native';
 
 export default function DeliveryOrderDetail() {
   const { id } = useLocalSearchParams();
@@ -16,7 +16,7 @@ export default function DeliveryOrderDetail() {
   if (!order || !currentDeliveryPartner) return null;
 
   const customer = customers.find(c => c.id === order.customerId);
-  const address = customer?.addresses.find(a => a.id === order.addressId);
+  const address = order.deliveryAddress || customer?.addresses.find(a => a.id === order.addressId);
 
   const handleUpdateStatus = (newStatus: 'OUT_FOR_DELIVERY' | 'DELIVERED') => {
     setIsProcessing(true);
@@ -81,9 +81,42 @@ export default function DeliveryOrderDetail() {
             <MapPin size={20} color={colors.primary} />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Delivery Address</Text>
-            <Text style={styles.detailValue}>{address?.street}</Text>
-            <Text style={styles.detailValue}>{address?.city} {address?.pincode}</Text>
+            <Text style={styles.detailLabel}>Destination</Text>
+            <Text style={styles.detailValue}>{address?.area}</Text>
+            <Text style={styles.detailLabel}>Pincode</Text>
+            <Text style={styles.detailValue}>{address?.pincode}</Text>
+            
+            <View style={{ marginTop: 12 }}>
+              <Text style={styles.detailLabel}>Full Address</Text>
+              <Text style={styles.detailValueSmall}>{address?.houseNumber ? `${address.houseNumber}, ` : ''}{address?.buildingName ? `${address.buildingName}` : ''}</Text>
+              <Text style={styles.detailValueSmall}>{address?.street}</Text>
+            </View>
+            
+            {address && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.locationPinText}>
+                  {address.latitude ? '📍 Location Confirmed' : '📍 Location (Text Address)'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                  <TouchableOpacity 
+                    style={[styles.viewLocationBtn, { flex: 1, marginTop: 0, backgroundColor: '#4285F4', borderColor: '#4285F4', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} 
+                    onPress={() => {
+                      // Use coordinates if available since they are now strictly validated to Mysore. 
+                      // This avoids Google Maps text search failing on overly specific building names or landmarks.
+                      const fullTextAddress = `${address.houseNumber ? address.houseNumber + ', ' : ''}${address.buildingName ? address.buildingName + ', ' : ''}${address.street ? address.street + ', ' : ''}${address.area ? address.area + ', ' : ''}Mysore, Karnataka - ${address.pincode}`.replace(/\s+/g, ' ').trim();
+                      const dest = (address.latitude && address.longitude) 
+                        ? `${address.latitude},${address.longitude}` 
+                        : encodeURIComponent(fullTextAddress);
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=two_wheeler`;
+                      import('react-native').then(({ Linking }) => Linking.openURL(url));
+                    }}
+                  >
+                    <Navigation size={14} color={colors.white} />
+                    <Text style={[styles.viewLocationBtnText, { color: colors.white }]}>Google Maps</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -144,6 +177,7 @@ export default function DeliveryOrderDetail() {
           </TouchableOpacity>
         )}
       </View>
+
     </ScrollView>
   );
 }
@@ -316,4 +350,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  detailValueSmall: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  locationPinText: { color: colors.primary, fontWeight: '600', fontSize: 13 },
+  viewLocationBtn: { marginTop: 8, backgroundColor: colors.softPurple, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.primary },
+  viewLocationBtnText: { color: colors.primary, fontWeight: '600', fontSize: 13 }
 });

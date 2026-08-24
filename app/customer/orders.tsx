@@ -3,11 +3,11 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Package, Truck, CheckCircle, Clock } from 'lucide-react-native';
+import { ArrowLeft, Package, Truck, CheckCircle, Clock, Star } from 'lucide-react-native';
 
 export default function CustomerOrdersScreen() {
   const router = useRouter();
-  const { orders, currentCustomer } = useStore();
+  const { orders, currentCustomer, rateDeliveryPartner } = useStore();
 
   const customerOrders = currentCustomer 
     ? orders.filter(o => o.customerId === currentCustomer.id)
@@ -85,6 +85,29 @@ export default function CustomerOrdersScreen() {
                   </View>
                   <Text style={styles.orderTotal}>₹{item.total}</Text>
                 </View>
+
+                {item.status === 'DELIVERED' && item.deliveryPartnerId && (
+                  <View style={styles.ratingSection}>
+                    <Text style={styles.ratingTitle}>
+                      {item.deliveryRating ? 'Your Rating' : 'Rate your Delivery Partner'}
+                    </Text>
+                    <View style={styles.starsRow}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <TouchableOpacity
+                          key={star}
+                          disabled={!!item.deliveryRating}
+                          onPress={() => rateDeliveryPartner(item.id, star)}
+                        >
+                          <Star 
+                            size={24} 
+                            color={item.deliveryRating && star <= item.deliveryRating ? '#F59E0B' : colors.border} 
+                            fill={item.deliveryRating && star <= item.deliveryRating ? '#F59E0B' : 'transparent'}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -145,6 +168,15 @@ const styles = StyleSheet.create({
     marginLeft: 6
   },
   orderTotal: { fontSize: 16, fontWeight: '700', color: colors.text },
+  ratingSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center'
+  },
+  ratingTitle: { fontSize: 14, fontWeight: '600', color: colors.darkPurple, marginBottom: 8 },
+  starsRow: { flexDirection: 'row', gap: 12 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { fontSize: 16, color: colors.mutedText, marginBottom: 20 },
   shopBtn: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },

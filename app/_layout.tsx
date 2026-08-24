@@ -5,7 +5,16 @@ import { useEffect } from 'react';
 import { useStore } from '../src/store/useStore';
 
 export default function RootLayout() {
+  const { fetchProducts, fetchDeliveryPartners, fetchCustomers, fetchOrders, fetchCoupons } = useStore();
+
   useEffect(() => {
+    // Fetch data from database on app load
+    fetchProducts();
+    fetchDeliveryPartners();
+    fetchCustomers();
+    fetchOrders();
+    fetchCoupons();
+
     // Cross-tab syncing for the demo
     const interval = setInterval(() => {
       useStore.persist.rehydrate();
