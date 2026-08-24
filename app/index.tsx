@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
@@ -7,6 +7,10 @@ import { useStore } from '../src/store/useStore';
 export default function RoleSelectionScreen() {
   const router = useRouter();
   const { resetDemo } = useStore();
+
+  useEffect(() => {
+    resetDemo();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

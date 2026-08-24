@@ -16,25 +16,18 @@ export default function OwnerDeliveryScreen() {
   const [newName, setNewName] = React.useState('');
   const [newPhone, setNewPhone] = React.useState('');
 
+  const handleNameChange = (text: string) => {
+    let filtered = text.replace(/[^a-zA-Z\s]/g, '');
+    filtered = filtered.replace(/(.)\1{3,}/gi, '$1$1$1');
+    setNewName(filtered);
+  };
+
   const handlePhoneChange = (text: string) => {
-    // 1. Remove non-numeric characters
-    const numbersOnly = text.replace(/[^0-9]/g, '');
-    
-    if (numbersOnly.length === 0) {
-      setNewPhone(numbersOnly);
-      return;
-    }
-    
-    // 2. Enforce 10 digits max
-    if (numbersOnly.length > 10) return;
-    
-    // 3. First digit must be 6, 7, 8, or 9
-    if (!/^[6-9]/.test(numbersOnly[0])) return;
-    
-    // 4. No more than 3 continuous same digits
-    if (/(.)\1{3,}/.test(numbersOnly)) return;
-    
-    setNewPhone(numbersOnly);
+    let filtered = text.replace(/[^0-9]/g, '');
+    filtered = filtered.replace(/^[^6-9]+/, '');
+    filtered = filtered.replace(/(.)\1{3,}/g, '$1$1$1');
+    filtered = filtered.slice(0, 10);
+    setNewPhone(filtered);
   };
 
   const validatePhone = (input: string) => {
@@ -136,7 +129,7 @@ export default function OwnerDeliveryScreen() {
             <Text style={styles.statLabel}>Rating</Text>
             <View style={styles.ratingRow}>
               <Star size={16} color="#d97706" fill="#d97706" />
-              <Text style={styles.statValue}>{item.rating}</Text>
+              <Text style={styles.statValue}>{item.rating?.toFixed(1) || '5.0'}</Text>
             </View>
           </View>
         </View>
@@ -176,15 +169,15 @@ export default function OwnerDeliveryScreen() {
             <Text style={styles.inputLabel}>Full Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Rahul Kumar"
+              placeholder="Enter name"
               value={newName}
-              onChangeText={setNewName}
+              onChangeText={handleNameChange}
             />
 
             <Text style={styles.inputLabel}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 9876543210"
+              placeholder="Enter phone number"
               value={newPhone}
               onChangeText={handlePhoneChange}
               keyboardType="phone-pad"

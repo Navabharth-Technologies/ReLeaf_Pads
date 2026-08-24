@@ -16,13 +16,20 @@ export interface Product {
 
 export interface Address {
   id: string;
+  customerId?: string;
   name: string;
   phone: string;
-  houseNo: string;
-  street: string;
-  landmark: string;
-  city: string;
-  pincode: string;
+  houseNumber?: string;
+  buildingName?: string;
+  street?: string;
+  area?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  addressType?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Customer {
@@ -31,6 +38,33 @@ export interface Customer {
   phone: string;
   pincode: string;
   addresses: Address[];
+}
+
+export interface StoreState {
+  products: Product[];
+  customers: Customer[];
+  orders: Order[];
+  deliveryPartners: DeliveryPartner[];
+
+  currentCustomer: Customer | null;
+  currentAddress: Address | null;
+  selectedLocation: string | null;
+  currentDeliveryPartner: DeliveryPartner | null;
+  cart: CartItem[];
+  coupons: Coupon[];
+  appliedCoupon: Coupon | null;
+  chatMessages: ChatMessage[];
+  chatState: ChatState;
+  tempCustomer?: { phone?: string; name?: string };
+
+  // Actions
+  toggleProductStock: (productId: string) => void;
+  toggleProductActive: (productId: string) => void;
+  updateProductStock: (productId: string, change: number) => void;
+  addToCart: (product: Product, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
+  rateDeliveryPartner: (orderId: string, rating: number) => void;
 }
 
 export interface CartItem {
@@ -49,6 +83,7 @@ export interface DeliveryPartner {
   activeOrders: number;
   completedOrders: number;
   rating?: number;
+  ratingsCount?: number;
 }
 
 export interface OrderItem {
@@ -84,6 +119,7 @@ export interface Order {
   date: string;
   estimatedDelivery?: string;
   deliveryPartnerId?: string;
+  deliveryRating?: number;
   trackingEvents: TrackingEvent[];
 }
 
@@ -98,4 +134,28 @@ export interface ChatMessage {
   orderId?: string;
 }
 
-export type ChatState = 'IDLE' | 'WELCOME' | 'BROWSING_PRODUCTS' | 'PRODUCT_SELECTED' | 'CART' | 'CHECKING_PINCODE' | 'COLLECTING_CUSTOMER_DETAILS' | 'COLLECTING_CUSTOMER_DETAILS_NAME' | 'COLLECTING_ADDRESS' | 'ADDRESS_CONFIRMATION' | 'ORDER_REVIEW' | 'PAYMENT' | 'PAYMENT_SUCCESS' | 'ORDER_CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+export type ChatState = 'IDLE' | 'WELCOME' | 'BROWSING_PRODUCTS' | 'PRODUCT_SELECTED' | 'CART' | 'CHECKING_PINCODE' | 'COLLECTING_CUSTOMER_DETAILS' | 'COLLECTING_CUSTOMER_DETAILS_NAME' | 'COLLECTING_ADDRESS' | 'ADDRESS_CONFIRMATION' | 'ORDER_REVIEW' | 'PAYMENT' | 'PAYMENT_SUCCESS' | 'ORDER_CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'WAITING_FOR_LOCATION';
+
+export type CouponType = 'PERCENTAGE' | 'FIXED' | 'INFLUENCER';
+export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+
+export interface Coupon {
+  id: string;
+  code: string;
+  type: CouponType;
+  discountType: DiscountType;
+  discountValue: number;
+  minimumOrderValue?: number;
+  maximumDiscount?: number;
+  usageLimit?: number;
+  usedCount: number;
+  perUserLimit?: number;
+  validFrom?: string;
+  validUntil?: string;
+  active: boolean;
+  influencerId?: string;
+  influencerName?: string;
+  eligibleUsers?: string[];
+  applicableProducts?: string[];
+  customerUsage?: Record<string, number>;
+}

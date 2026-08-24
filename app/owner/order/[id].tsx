@@ -3,42 +3,44 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'rea
 import { colors } from '../../../src/theme/colors';
 import { useStore } from '../../../src/store/useStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, User, Package, Truck, Play, CheckCircle, Star } from 'lucide-react-native';
+import { ArrowLeft, MapPin, User, Package, Truck, Play, CheckCircle, Star, Navigation } from 'lucide-react-native';
+import Map from '../../../src/components/Map';
 
 export default function OwnerOrderDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const orderId = `#${id}`;
-  
-  const { 
-    orders, customers, deliveryPartners, 
-    updateOrderStatus, assignDeliveryPartner, demoFastForward 
+
+  const {
+    orders, customers, deliveryPartners, coupons,
+    updateOrderStatus, assignDeliveryPartner, demoFastForward
   } = useStore();
 
   const [partnerModalVisible, setPartnerModalVisible] = useState(false);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   const order = orders.find(o => o.id === orderId);
   if (!order) {
     return (
       <View style={styles.container}>
-         <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <ArrowLeft size={24} color={colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Order Not Found</Text>
-            <View style={{ width: 24 }} />
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order Not Found</Text>
+          <View style={{ width: 24 }} />
+        </View>
       </View>
     );
   }
 
   const customer = customers.find(c => c.id === order.customerId);
-  const address = customer?.addresses.find(a => a.id === order.addressId);
+  const address = order.deliveryAddress || customer?.addresses.find(a => a.id === order.addressId);
   const activePartner = order.deliveryPartnerId ? deliveryPartners.find(dp => dp.id === order.deliveryPartnerId) : null;
   const availablePartners = deliveryPartners; // We will show all, but visually disable offline ones
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'DELIVERED': return colors.darkPurple;
       case 'CANCELLED': return 'red';
       case 'OUT_FOR_DELIVERY': return '#d97706';
@@ -61,7 +63,7 @@ export default function OwnerOrderDetailScreen() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
-        
+
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.orderId}>{order.id}</Text>
@@ -84,9 +86,15 @@ export default function OwnerOrderDetailScreen() {
           <View style={[styles.row, { marginTop: 12, alignItems: 'flex-start' }]}>
             <MapPin size={20} color={colors.mutedText} style={[styles.icon, { marginTop: 2 }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.addressText}>{address?.houseNo}, {address?.street}</Text>
-              {address?.landmark && <Text style={styles.addressText}>{address?.landmark}</Text>}
+              <Text style={styles.addressText}>{address?.houseNumber ? `${address.houseNumber}, ` : ''}{address?.buildingName ? `${address.buildingName}` : ''}</Text>
+              <Text style={styles.addressText}>{address?.street}, {address?.area}</Text>
+              {!!address?.landmark && <Text style={styles.addressText}>{address.landmark}</Text>}
               <Text style={styles.addressText}>{address?.city} - {address?.pincode}</Text>
+              {address?.latitude && address?.longitude ? (
+                <View style={{ marginTop: 6 }}>
+                  <Text style={styles.locationPinText}>📍 GPS Coordinates Available (for Delivery Partner)</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </View>
@@ -103,16 +111,31 @@ export default function OwnerOrderDetailScreen() {
               <Text style={styles.itemTotal}>₹{item.totalPrice}</Text>
             </View>
           ))}
+
+          <View style={styles.divider} />
+
+          <View style={styles.subtotalRow}>
+            <Text style={styles.subtotalLabel}>Subtotal</Text>
+            <Text style={styles.subtotalValue}>₹{order.items.reduce((sum, item) => sum + item.totalPrice, 0)}</Text>
+          </View>
+
+          {order.couponId && (
+            <View style={styles.subtotalRow}>
+              <Text style={styles.couponLabel}>Coupon ({coupons.find(c => c.id === order.couponId)?.code || order.couponId})</Text>
+              <Text style={styles.couponValue}>-₹{order.discountAmount?.toFixed(2)}</Text>
+            </View>
+          )}
+
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{order.total}</Text>
+            <Text style={styles.totalValue}>₹{order.total.toFixed(2)}</Text>
           </View>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Order Management</Text>
-          
-          {['ORDER_PLACED', 'PAYMENT_CONFIRMED'].includes(order.status) && (
+
+          {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED'].includes(order.status) && (
             <TouchableOpacity style={styles.actionBtn} onPress={() => updateOrderStatus(order.id, 'PREPARING')}>
               <Text style={styles.actionBtnText}>Start Preparing Order</Text>
             </TouchableOpacity>
@@ -126,37 +149,37 @@ export default function OwnerOrderDetailScreen() {
 
           {['PACKED', 'ASSIGNED'].includes(order.status) && (
             <View>
-               <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setPartnerModalVisible(true)}>
-                 <Truck size={20} color={colors.primary} />
-                 <Text style={[styles.actionBtnText, { color: colors.primary, marginLeft: 8 }]}>
-                   {order.deliveryPartnerId ? 'Change Delivery Partner' : 'Assign Delivery Partner'}
-                 </Text>
-               </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setPartnerModalVisible(true)}>
+                <Truck size={20} color={colors.primary} />
+                <Text style={[styles.actionBtnText, { color: colors.primary, marginLeft: 8 }]}>
+                  {order.deliveryPartnerId ? 'Change Delivery Partner' : 'Assign Delivery Partner'}
+                </Text>
+              </TouchableOpacity>
 
-               {order.status === 'ASSIGNED' && (
-                 <TouchableOpacity style={[styles.actionBtn, { marginTop: 12 }]} onPress={() => updateOrderStatus(order.id, 'OUT_FOR_DELIVERY')}>
-                   <Text style={styles.actionBtnText}>Hand Over & Dispatch</Text>
-                 </TouchableOpacity>
-               )}
+              {order.status === 'ASSIGNED' && (
+                <TouchableOpacity style={[styles.actionBtn, { marginTop: 12 }]} onPress={() => updateOrderStatus(order.id, 'OUT_FOR_DELIVERY')}>
+                  <Text style={styles.actionBtnText}>Hand Over & Dispatch</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
           {order.status === 'OUT_FOR_DELIVERY' && (
-             <View>
-               {activePartner && (
-                 <View style={styles.assignedPartnerBox}>
-                   <Truck size={20} color={colors.primary} />
-                   <View style={{ marginLeft: 12 }}>
-                     <Text style={styles.assignedPartnerName}>{activePartner.name}</Text>
-                     <Text style={styles.assignedPartnerPhone}>{activePartner.phone}</Text>
-                   </View>
-                 </View>
-               )}
-               <TouchableOpacity style={styles.actionBtnComplete} onPress={() => updateOrderStatus(order.id, 'DELIVERED')}>
-                 <CheckCircle size={20} color={colors.white} />
-                 <Text style={[styles.actionBtnText, { marginLeft: 8 }]}>Mark as Delivered</Text>
-               </TouchableOpacity>
-             </View>
+            <View>
+              {activePartner && (
+                <View style={styles.assignedPartnerBox}>
+                  <Truck size={20} color={colors.primary} />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.assignedPartnerName}>{activePartner.name}</Text>
+                    <Text style={styles.assignedPartnerPhone}>{activePartner.phone}</Text>
+                  </View>
+                </View>
+              )}
+              <TouchableOpacity style={styles.actionBtnComplete} onPress={() => updateOrderStatus(order.id, 'DELIVERED')}>
+                <CheckCircle size={20} color={colors.white} />
+                <Text style={[styles.actionBtnText, { marginLeft: 8 }]}>Mark as Delivered</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {order.status === 'DELIVERED' && (
@@ -179,7 +202,7 @@ export default function OwnerOrderDetailScreen() {
                 <Text style={styles.closeText}>Cancel</Text>
               </TouchableOpacity>
             </View>
-            
+
             <Text style={styles.modalSubtitle}>All Delivery Partners</Text>
             {availablePartners.length === 0 ? (
               <Text style={styles.noPartnersText}>No partners found.</Text>
@@ -187,8 +210,8 @@ export default function OwnerOrderDetailScreen() {
               availablePartners.map(dp => {
                 const isAvailable = dp.status === 'AVAILABLE';
                 return (
-                  <TouchableOpacity 
-                    key={dp.id} 
+                  <TouchableOpacity
+                    key={dp.id}
                     style={[styles.partnerOption, !isAvailable && { opacity: 0.5 }]}
                     disabled={!isAvailable}
                     onPress={() => {
@@ -212,18 +235,17 @@ export default function OwnerOrderDetailScreen() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 16, 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border
@@ -255,7 +277,13 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 4 },
   itemMeta: { fontSize: 13, color: colors.mutedText },
   itemTotal: { fontSize: 15, fontWeight: '700', color: colors.text },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },
+  subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  subtotalLabel: { fontSize: 14, color: colors.text },
+  subtotalValue: { fontSize: 15, color: colors.text },
+  couponLabel: { fontSize: 14, color: colors.primary, fontWeight: '500' },
+  couponValue: { fontSize: 15, color: colors.primary, fontWeight: '600' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8 },
   totalLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
   totalValue: { fontSize: 18, fontWeight: '700', color: colors.darkPurple },
   actionBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 8, alignItems: 'center' },
@@ -267,7 +295,7 @@ const styles = StyleSheet.create({
   assignedPartnerPhone: { fontSize: 13, color: colors.mutedText },
   successState: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: '#F0FFF4', borderRadius: 8 },
   successText: { fontSize: 16, fontWeight: '600', color: colors.darkPurple, marginLeft: 8 },
-  
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
@@ -279,5 +307,20 @@ const styles = StyleSheet.create({
   partnerName: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
   partnerPhone: { fontSize: 14, color: colors.mutedText },
   ratingBadge: { backgroundColor: colors.softPurple, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  ratingText: { color: colors.primary, fontWeight: '700', fontSize: 12 }
+  ratingText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
+  locationPinText: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: 8 },
+  coordsText: { color: colors.mutedText, fontSize: 12, marginTop: 2 },
+  viewLocationBtn: { marginTop: 8, backgroundColor: colors.softPurple, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.primary },
+  viewLocationBtnText: { color: colors.primary, fontWeight: '600', fontSize: 13 },
+  mapModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  mapModalContent: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, height: '80%' },
+  mapCustomerText: { fontSize: 15, fontWeight: '600', color: colors.text },
+  mapOrderText: { fontSize: 14, color: colors.mutedText, marginBottom: 16 },
+  mapAddressBox: { backgroundColor: colors.softPurple, padding: 12, borderRadius: 8, marginBottom: 16 },
+  mapAddressTitle: { fontSize: 14, fontWeight: '700', color: colors.darkPurple, marginBottom: 4 },
+  mapAddressText: { fontSize: 13, color: colors.text, marginBottom: 2 },
+  mapContainer: { flex: 1, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  map: { width: '100%', height: '100%' },
+  noMapBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#E2E8F0' },
+  noMapText: { color: colors.mutedText, fontWeight: '500' }
 });

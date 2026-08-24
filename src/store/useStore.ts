@@ -3,9 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   Product, Customer, Order, ChatMessage, CartItem, OrderItem,
-  Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent
+  Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent, Coupon
 } from './types';
-import { mockProducts, mockCustomers, mockDeliveryPartners, mockOrders, SERVICEABLE_PINCODES } from './mockData';
+import { mockProducts, mockCustomers, mockDeliveryPartners, mockOrders, mockCoupons, SERVICEABLE_PINCODES } from './mockData';
 
 interface AppState {
   // Data
@@ -17,10 +17,13 @@ interface AppState {
   // Current session
   currentCustomer: Customer | null;
   currentAddress: Address | null;
+  selectedLocation: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME'|'WORK'|'OTHER'; street?: string; area?: string; city?: string; } | null;
   currentDeliveryPartner: DeliveryPartner | null;
   cart: CartItem[];
   chatMessages: ChatMessage[];
   chatState: ChatState;
+  coupons: Coupon[];
+  appliedCoupon: Coupon | null;
   
   // Actions
   toggleProductStock: (productId: string) => void;
@@ -33,6 +36,7 @@ interface AppState {
   setChatState: (state: ChatState) => void;
   setCurrentCustomer: (customer: Customer | null) => void;
   setCurrentAddress: (address: Address | null) => void;
+  setSelectedLocation: (location: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME'|'WORK'|'OTHER' } | null) => void;
   loginDeliveryPartner: (phone: string) => boolean;
   logoutDeliveryPartner: () => void;
   togglePartnerStatus: () => void;
@@ -43,9 +47,25 @@ interface AppState {
   saveNewCustomer: (customerData: Partial<Customer>) => Customer;
   demoFastForward: (orderId: string) => void;
   resetDemo: () => void;
-  addDeliveryPartner: (name: string, phone: string) => void;
+  fetchProducts: () => Promise<void>;
+  fetchDeliveryPartners: () => Promise<void>;
+  fetchCustomers: () => Promise<void>;
+  fetchOrders: () => Promise<void>;
+  fetchCoupons: () => Promise<void>;
+  addDeliveryPartner: (name: string, phone: string) => Promise<void>;
   removeDeliveryPartner: (id: string) => void;
   addProduct: (product: Partial<Product>) => void;
+  
+  addAddressToCustomer: (customerId: string, address: Address) => void;
+  
+  addCoupon: (coupon: Partial<Coupon>) => void;
+  applyCoupon: (code: string) => { success: boolean; message: string };
+  removeCoupon: () => void;
+  getCartTotal: () => { subtotal: number; discountAmount: number; delivery: number; total: number };
+  rateDeliveryPartner: (orderId: string, rating: number) => void;
+  
+  // Backend Integration
+  fetchProducts: () => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -67,8 +87,11 @@ export const useStore = create<AppState>()(
       
       currentCustomer: null,
       currentAddress: null,
+      selectedLocation: null,
       currentDeliveryPartner: null,
       cart: [],
+      coupons: mockCoupons,
+      appliedCoupon: null,
       chatMessages: [
         {
           id: 'init-msg',
@@ -117,27 +140,43 @@ export const useStore = create<AppState>()(
         return { cart: [...state.cart, { product, quantity }] };
       }),
       
-      updateCartQuantity: (productId, quantity) => set((state) => ({
-        cart: quantity <= 0 
+      updateCartQuantity: (productId, quantity) => set((state) => {
+        const newCart = quantity <= 0 
           ? state.cart.filter(item => item.product.id !== productId)
-          : state.cart.map(item => item.product.id === productId ? { ...item, quantity } : item)
-      })),
+          : state.cart.map(item => item.product.id === productId ? { ...item, quantity } : item);
+        
+        // Re-validate coupon if one is applied
+        return { cart: newCart };
+      }),
       
-      clearCart: () => set({ cart: [] }),
+      clearCart: () => set({ cart: [], appliedCoupon: null }),
       
-      addChatMessage: (msg) => set((state) => ({
-        chatMessages: [...state.chatMessages, {
-          ...msg,
-          id: generateId(),
-          timestamp: new Date().toISOString()
-        }]
-      })),
+      addChatMessage: (msg) => set((state) => {
+        let updatedMessages = state.chatMessages;
+        
+        if (msg.type === 'cart') {
+          updatedMessages = updatedMessages.filter(m => m.type !== 'cart');
+        }
+        if (msg.type === 'add_to_cart_success') {
+          updatedMessages = updatedMessages.filter(m => m.type !== 'add_to_cart_success');
+        }
+
+        return {
+          chatMessages: [...updatedMessages, {
+            ...msg,
+            id: generateId(),
+            timestamp: new Date().toISOString()
+          }]
+        };
+      }),
       
       setChatState: (chatState) => set({ chatState }),
       
       setCurrentCustomer: (customer) => set({ currentCustomer: customer }),
       
       setCurrentAddress: (address) => set({ currentAddress: address }),
+      
+      setSelectedLocation: (location) => set({ selectedLocation: location }),
 
       loginDeliveryPartner: (phone) => {
         const normalize = (p: string) => {
@@ -170,12 +209,77 @@ export const useStore = create<AppState>()(
         };
       }),
       
+      getCartTotal: () => {
+        const state = get();
+        const subtotal = state.cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
+        let discountAmount = 0;
+        
+        if (state.appliedCoupon) {
+          const c = state.appliedCoupon;
+          if (c.discountType === 'PERCENTAGE') {
+            discountAmount = subtotal * (c.discountValue / 100);
+            if (c.maximumDiscount && discountAmount > c.maximumDiscount) {
+              discountAmount = c.maximumDiscount;
+            }
+          } else {
+            discountAmount = c.discountValue;
+          }
+          
+          if (discountAmount > subtotal) {
+             discountAmount = subtotal;
+          }
+        }
+        
+        const delivery = 0; // FREE for demo
+        const total = subtotal - discountAmount + delivery;
+        
+        return { subtotal, discountAmount, delivery, total };
+      },
+      
+      applyCoupon: (code) => {
+        const state = get();
+        const subtotal = state.cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
+        const searchCode = code.trim().toUpperCase();
+        
+        const coupon = state.coupons.find(c => c.code.toUpperCase() === searchCode);
+        if (!coupon) return { success: false, message: "Sorry, we couldn't find that coupon. Please check the code and try again." };
+        if (!coupon.active) return { success: false, message: "This offer is currently unavailable." };
+        
+        if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+          return { success: false, message: "This offer has reached its usage limit." };
+        }
+        
+        if (coupon.minimumOrderValue && subtotal < coupon.minimumOrderValue) {
+          return { success: false, message: `Your order needs to be at least ₹${coupon.minimumOrderValue} to use this offer.` };
+        }
+        
+        if (coupon.type === 'USER_SPECIFIC') {
+           if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
+           if (!coupon.eligibleUsers || !coupon.eligibleUsers.includes(state.currentCustomer.id)) {
+             return { success: false, message: "This coupon isn't available for your account." };
+           }
+        }
+        
+        if (coupon.type === 'FIRST_ORDER') {
+           if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
+           const hasOrders = state.orders.some(o => o.customerId === state.currentCustomer!.id && o.status !== 'CANCELLED');
+           if (hasOrders) {
+             return { success: false, message: "This coupon is valid only for your first order." };
+           }
+        }
+        
+        // Success
+        set({ appliedCoupon: coupon });
+        return { success: true, message: `✓ ${coupon.code} Applied` };
+      },
+      
+      removeCoupon: () => set({ appliedCoupon: null }),
+      
       createOrder: (paymentMethod) => {
         const state = get();
         if (!state.currentCustomer || !state.currentAddress || state.cart.length === 0) return '';
         
-        const subtotal = state.cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
-        const delivery = 0; // FREE for demo
+        const { subtotal, discountAmount, delivery, total } = get().getCartTotal();
         const now = new Date().toISOString();
         
         const orderItems: OrderItem[] = state.cart.map(c => ({
@@ -188,23 +292,60 @@ export const useStore = create<AppState>()(
           totalPrice: c.product.sellingPrice * c.quantity,
           itemStatus: 'ORDER_PLACED'
         }));
-
+            const id = generateOrderId(state.orders);
         const newOrder: Order = {
-          id: generateOrderId(state.orders),
+          id,
           customerId: state.currentCustomer.id,
           addressId: state.currentAddress.id,
+          deliveryAddress: state.currentAddress,
           items: orderItems,
           subtotal,
           delivery,
-          total: subtotal + delivery,
+          total,
           paymentStatus: 'PAID',
-          status: 'ORDER_PLACED',
+          status: 'ORDER_CONFIRMED',
           date: now,
           trackingEvents: [
-            { id: generateId(), orderId: '', status: 'ORDER_PLACED', timestamp: now, message: 'Order Placed' },
-            { id: generateId(), orderId: '', status: 'PAYMENT_CONFIRMED', timestamp: now, message: 'Payment Confirmed' }
+            {
+              id: generateId(),
+              orderId: id,
+              status: 'ORDER_CONFIRMED',
+              timestamp: now,
+              message: 'Order Confirmed'
+            }
           ]
         };
+        
+        if (state.appliedCoupon) {
+           newOrder.couponId = state.appliedCoupon.id;
+           newOrder.couponCode = state.appliedCoupon.code;
+           newOrder.discountAmount = discountAmount;
+           if (state.appliedCoupon.type === 'INFLUENCER') {
+             newOrder.influencerId = state.appliedCoupon.influencerId;
+             newOrder.influencerName = state.appliedCoupon.influencerName;
+           }
+        }
+        
+        // POST to SQL Database
+        fetch('http://localhost:5000/api/orders/full', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: newOrder.id,
+            customerId: newOrder.customerId,
+            addressId: newOrder.addressId,
+            couponId: newOrder.couponId,
+            subtotal: newOrder.subtotal,
+            delivery: newOrder.delivery,
+            total: newOrder.total,
+            paymentStatus: newOrder.paymentStatus,
+            status: newOrder.status,
+            date: newOrder.date,
+            items: newOrder.items,
+            trackingEvents: newOrder.trackingEvents
+          })
+        }).catch(err => console.error('Failed to save order to DB:', err));
+        
         newOrder.trackingEvents.forEach(te => te.orderId = newOrder.id);
         
         // Update product stock and totalSold
@@ -225,11 +366,38 @@ export const useStore = create<AppState>()(
           }
           return p;
         });
+        
+        // Update coupon usage
+        const updatedCoupons = state.coupons.map(c => {
+           if (state.appliedCoupon && c.id === state.appliedCoupon.id) {
+              const customerUsage = { ...(c.customerUsage || {}) };
+              const customerId = state.currentCustomer!.id;
+              customerUsage[customerId] = (customerUsage[customerId] || 0) + 1;
+              return { ...c, usedCount: c.usedCount + 1, customerUsage };
+           }
+           return c;
+        });
+        
+        // Update customer savings
+        const updatedCustomers = state.customers.map(c => {
+           if (c.id === state.currentCustomer!.id) {
+              return { 
+                ...c, 
+                totalSavings: (c.totalSavings || 0) + discountAmount,
+                couponsUsed: (c.couponsUsed || 0) + (state.appliedCoupon ? 1 : 0)
+              };
+           }
+           return c;
+        });
 
         set((state) => ({
           orders: [newOrder, ...state.orders],
           cart: [],
-          products: updatedProducts
+          appliedCoupon: null,
+          products: updatedProducts,
+          coupons: updatedCoupons,
+          customers: updatedCustomers,
+          currentCustomer: updatedCustomers.find(c => c.id === state.currentCustomer!.id) || state.currentCustomer
         }));
         
         return newOrder.id;
@@ -239,6 +407,13 @@ export const useStore = create<AppState>()(
         const state = get();
         const order = state.orders.find(o => o.id === orderId);
         if (!order) return;
+
+        // POST to SQL Database
+        fetch(`http://localhost:5000/api/orders/${encodeURIComponent(orderId)}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        }).catch(err => console.error('Failed to update order status in DB:', err));
 
         let message = '';
         let chatText = '';
@@ -316,10 +491,53 @@ export const useStore = create<AppState>()(
           get().addChatMessage({ sender: 'bot', text: chatText, type: 'text', orderId });
         }
       },
+
+      rateDeliveryPartner: (orderId, rating) => {
+        const state = get();
+        const order = state.orders.find(o => o.id === orderId);
+        if (!order || !order.deliveryPartnerId) return;
+
+        const partnerId = order.deliveryPartnerId;
+
+        // In a real app, you would POST this rating to the backend here
+
+        set((state) => {
+          const updatedOrders = state.orders.map(o => 
+            o.id === orderId ? { ...o, deliveryRating: rating } : o
+          );
+
+          const updatedPartners = state.deliveryPartners.map(dp => {
+            if (dp.id === partnerId) {
+              const currentRating = dp.rating || 5.0;
+              const currentCount = dp.ratingsCount || 1;
+              const newRating = ((currentRating * currentCount) + rating) / (currentCount + 1);
+              return { ...dp, rating: newRating, ratingsCount: currentCount + 1 };
+            }
+            return dp;
+          });
+
+          const updatedCurrentPartner = state.currentDeliveryPartner?.id === partnerId
+            ? updatedPartners.find(dp => dp.id === partnerId)
+            : state.currentDeliveryPartner;
+
+          return {
+            orders: updatedOrders,
+            deliveryPartners: updatedPartners,
+            currentDeliveryPartner: updatedCurrentPartner || null
+          };
+        });
+      },
       
       assignDeliveryPartner: (orderId, partnerId) => {
         const state = get();
         const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
+        
+        // POST to SQL Database
+        fetch(`http://localhost:5000/api/orders/${encodeURIComponent(orderId)}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'ASSIGNED', deliveryPartnerId: partnerId })
+        }).catch(err => console.error('Failed to assign partner in DB:', err));
         
         const newEvent: TrackingEvent = {
           id: generateId(),
@@ -376,6 +594,14 @@ export const useStore = create<AppState>()(
           }
           return p;
         });
+        
+        // Restore coupon usage
+        const updatedCoupons = state.coupons.map(c => {
+           if (order.couponId && c.id === order.couponId) {
+             return { ...c, usedCount: Math.max(0, c.usedCount - 1) };
+           }
+           return c;
+        });
 
         set((state) => ({
           orders: state.orders.map(o => o.id === orderId ? {
@@ -384,7 +610,8 @@ export const useStore = create<AppState>()(
             trackingEvents: [...o.trackingEvents, newEvent],
             items: o.items.map(i => ({ ...i, itemStatus: 'CANCELLED' }))
           } : o),
-          products: updatedProducts
+          products: updatedProducts,
+          coupons: updatedCoupons
         }));
 
         if (order.customerId === state.currentCustomer?.id) {
@@ -393,18 +620,61 @@ export const useStore = create<AppState>()(
       },
       
       saveNewCustomer: (customerData) => {
+        const id = `c_${Date.now()}`;
         const newCustomer: Customer = {
-          id: generateId(),
+          id,
           name: customerData.name || '',
           phone: customerData.phone || '',
           pincode: customerData.pincode || '',
           addresses: customerData.addresses || []
         };
+        
+        // POST to SQL Database
+        fetch('http://localhost:5000/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newCustomer)
+        })
+        .then(() => {
+          if (newCustomer.addresses.length > 0) {
+            newCustomer.addresses.forEach(addr => {
+              fetch(`http://localhost:5000/api/customers/${id}/addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(addr)
+              }).catch(err => console.error('Failed to save address to DB:', err));
+            });
+          }
+        })
+        .catch(err => console.error('Failed to save customer to DB:', err));
+
         set((state) => ({
           customers: [...state.customers, newCustomer],
           currentCustomer: newCustomer
         }));
         return newCustomer;
+      },
+      
+      addAddressToCustomer: (customerId, address) => {
+        fetch(`http://localhost:5000/api/customers/${customerId}/addresses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(address)
+        }).catch(err => console.error('Failed to save address to DB:', err));
+
+        set((state) => {
+          const updatedCustomers = state.customers.map(c => {
+            if (c.id === customerId) {
+              return { ...c, addresses: [...(c.addresses || []), address] };
+            }
+            return c;
+          });
+          const updatedCurrentCustomer = state.currentCustomer?.id === customerId 
+            ? { ...state.currentCustomer, addresses: [...(state.currentCustomer.addresses || []), address] }
+            : state.currentCustomer;
+            
+          return { customers: updatedCustomers, currentCustomer: updatedCurrentCustomer };
+        });
       },
       
       demoFastForward: (orderId) => {
@@ -433,9 +703,12 @@ export const useStore = create<AppState>()(
         customers: mockCustomers,
         orders: mockOrders,
         deliveryPartners: mockDeliveryPartners,
+        coupons: mockCoupons,
         currentCustomer: null,
         currentAddress: null,
+        selectedLocation: null,
         cart: [],
+        appliedCoupon: null,
         chatState: 'WELCOME',
         chatMessages: [
           {
@@ -448,20 +721,84 @@ export const useStore = create<AppState>()(
         ]
       }),
 
-      addDeliveryPartner: (name, phone) => set((state) => ({
-        deliveryPartners: [
-          ...state.deliveryPartners,
-          {
+      addDeliveryPartner: async (name, phone) => {
+        try {
+          // POST to SQL Database
+          const response = await fetch('http://localhost:5000/api/delivery-partners', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone })
+          });
+          
+          if (!response.ok) throw new Error('Failed to save to database');
+          
+          const newDp = {
             id: `dp_${Date.now()}`,
             name,
             phone,
             status: 'AVAILABLE',
             activeOrders: 0,
             completedOrders: 0,
-            rating: 5.0
-          }
-        ]
-      })),
+            rating: 5.0,
+            ratingsCount: 1
+          };
+          
+          set((state) => ({
+            deliveryPartners: [...state.deliveryPartners, newDp]
+          }));
+        } catch (error) {
+          console.error("Error saving delivery partner:", error);
+          alert("Failed to save to database. Is the backend running?");
+        }
+      },
+
+      fetchDeliveryPartners: async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/delivery-partners');
+          const data = await response.json();
+          // Map DB schema to frontend schema
+          const mappedPartners = data.map((dp: any) => ({
+            ...dp,
+            status: dp.availabilityStatus || 'AVAILABLE',
+            activeOrders: dp.activeOrders || 0,
+            completedOrders: dp.completedOrders || 0,
+            rating: dp.rating || 5.0
+          }));
+          set({ deliveryPartners: mappedPartners });
+        } catch (error) {
+          console.error("Failed to fetch delivery partners from DB:", error);
+        }
+      },
+
+      fetchCustomers: async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/customers');
+          const data = await response.json();
+          set({ customers: data });
+        } catch (error) {
+          console.error("Failed to fetch customers from DB:", error);
+        }
+      },
+
+      fetchOrders: async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/orders');
+          const data = await response.json();
+          set({ orders: data });
+        } catch (error) {
+          console.error("Failed to fetch orders from DB:", error);
+        }
+      },
+      
+      fetchCoupons: async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/coupons');
+          const data = await response.json();
+          set({ coupons: data });
+        } catch (error) {
+          console.error("Failed to fetch coupons from DB:", error);
+        }
+      },
 
       removeDeliveryPartner: (id) => set((state) => ({
         deliveryPartners: state.deliveryPartners.filter(dp => dp.id !== id)
@@ -486,7 +823,48 @@ export const useStore = create<AppState>()(
             active: true
           }
         ]
-      }))
+      })),
+
+      addCoupon: (coupon) => {
+        const id = `coupon_${Date.now()}`;
+        const newCoupon: Coupon = {
+            id,
+            code: coupon.code || `NEW${Date.now()}`,
+            type: coupon.type || 'GENERAL',
+            discountType: coupon.discountType || 'PERCENTAGE',
+            discountValue: coupon.discountValue || 10,
+            minimumOrderValue: coupon.minimumOrderValue,
+            maximumDiscount: coupon.maximumDiscount,
+            usageLimit: coupon.usageLimit,
+            usedCount: 0,
+            active: coupon.active ?? true,
+            influencerName: coupon.influencerName
+        };
+
+        // POST to SQL Database
+        fetch('http://localhost:5000/api/coupons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newCoupon)
+        }).catch(err => console.error('Failed to save coupon to DB:', err));
+
+        set((state) => ({
+          coupons: [...state.coupons, newCoupon]
+        }));
+      },
+
+      fetchProducts: async () => {
+        try {
+          // You may need to change localhost to your PC's IP if running on an Android emulator or physical device.
+          const response = await fetch('http://localhost:5000/api/products');
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            set({ products: data });
+          }
+        } catch (error) {
+          console.error('Failed to fetch products from backend:', error);
+        }
+      }
     }),
     {
       name: 'releaf-storage',

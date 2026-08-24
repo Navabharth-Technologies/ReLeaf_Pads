@@ -132,9 +132,9 @@ export default function OwnerProductsScreen() {
             <Text style={styles.inputLabel}>Product Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Regular Flow Pads"
+              placeholder="Enter product name"
               value={name}
-              onChangeText={setName}
+              onChangeText={(text) => setName(text.replace(/[^a-zA-Z0-9\s]/g, ''))}
             />
 
             <View style={{ flexDirection: 'row', gap: 16 }}>
@@ -142,9 +142,9 @@ export default function OwnerProductsScreen() {
                 <Text style={styles.inputLabel}>Selling Price (₹)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. 199"
+                  placeholder="Enter price"
                   value={price}
-                  onChangeText={setPrice}
+                  onChangeText={(text) => setPrice(text.replace(/[^0-9]/g, ''))}
                   keyboardType="numeric"
                 />
               </View>
@@ -152,9 +152,9 @@ export default function OwnerProductsScreen() {
                 <Text style={styles.inputLabel}>Initial Stock</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. 50"
+                  placeholder="Enter stock quantity"
                   value={stock}
-                  onChangeText={setStock}
+                  onChangeText={(text) => setStock(text.replace(/[^0-9]/g, ''))}
                   keyboardType="numeric"
                 />
               </View>

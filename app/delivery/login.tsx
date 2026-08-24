@@ -96,7 +96,7 @@ export default function DeliveryLoginScreen() {
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 9876543210"
+              placeholder="Enter phone number"
               value={phone}
               onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
@@ -109,18 +109,7 @@ export default function DeliveryLoginScreen() {
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
-            <View style={styles.demoHint}>
-              <Text style={styles.demoHintTitle}>Demo Accounts:</Text>
-              {deliveryPartners.map(dp => (
-                <TouchableOpacity key={dp.id} onPress={() => {
-                  const numbersOnly = dp.phone.replace(/[^0-9]/g, '');
-                  const phone10 = numbersOnly.length > 10 && numbersOnly.startsWith('91') ? numbersOnly.slice(2) : numbersOnly;
-                  setPhone(phone10.slice(0, 10));
-                }}>
-                  <Text style={styles.demoHintText}>{dp.name}: {dp.phone}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -214,24 +203,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  demoHint: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  demoHintTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  demoHintText: {
-    fontSize: 14,
-    color: colors.primary,
-    marginBottom: 4,
-    paddingVertical: 4,
-  },
+
 });
