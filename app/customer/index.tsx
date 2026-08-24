@@ -6,6 +6,7 @@ import { Send, Truck, ChevronRight } from 'lucide-react-native';
 import { ChatMessage, Customer, Address } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
 import { useRouter } from 'expo-router';
+import RazorpayCheckout from 'react-native-razorpay';
 
 export default function CustomerChatScreen() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function CustomerChatScreen() {
     chatMessages, addChatMessage, chatState, setChatState,
     products, addToCart, updateCartQuantity, cart, clearCart,
     customers, currentCustomer, setCurrentCustomer,
-    currentAddress, setCurrentAddress, saveNewCustomer, createOrder,
+    currentAddress, setCurrentAddress, saveNewCustomer, createOrder, markOrderAsPaid,
     orders, deliveryPartners,
     coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal
   } = useStore();
@@ -22,6 +23,7 @@ export default function CustomerChatScreen() {
   const [couponInput, setCouponInput] = useState('');
   const [tempCustomer, setTempCustomer] = useState<Partial<Customer>>({});
   const [tempAddress, setTempAddress] = useState<Partial<Address>>({});
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Find active order for the current customer
@@ -260,22 +262,101 @@ export default function CustomerChatScreen() {
     setChatState('PAYMENT');
   };
 
-  const handlePayment = (method: string) => {
+  const handlePayment = async () => {
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(true);
+    
     addChatMessage({
       sender: 'bot',
-      text: "Processing payment...",
+      text: "Connecting to secure payment gateway...",
       type: 'text'
     });
 
-    setTimeout(() => {
-      const orderId = createOrder(method);
+    try {
+      // 1. Create PENDING Order in Zustand & Database
+      const releafOrderId = createOrder('RAZORPAY');
+      
+      // 2. Fetch Razorpay Order ID from Backend
+      const response = await fetch('https://releaf-pads-backend.onrender.com/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: releafOrderId })
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || "Failed to create payment order");
+      }
+      
+      // 3. Configure Razorpay Checkout
+      const options = {
+        description: 'ReLeaf Sanitary Pads Order',
+        image: 'https://releaf-pads.com/logo.png', // Optional branding
+        currency: data.currency,
+        key: data.keyId,
+        amount: data.amount,
+        name: 'ReLeaf Pads',
+        order_id: data.razorpayOrderId,
+        prefill: {
+          email: 'customer@releafpads.com',
+          contact: currentCustomer?.phone || '',
+          name: currentCustomer?.name || ''
+        },
+        theme: { color: colors.primary }
+      };
+      
+      // 4. Open Checkout
+      RazorpayCheckout.open(options).then(async (paymentData: any) => {
+        // Payment Success!
+        // The backend webhook will ALSO verify this, but we verify here for the UI flow.
+        
+        const verifyRes = await fetch('https://releaf-pads-backend.onrender.com/api/payments/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             orderId: releafOrderId,
+             razorpayPaymentId: paymentData.razorpay_payment_id,
+             razorpayOrderId: paymentData.razorpay_order_id,
+             razorpaySignature: paymentData.razorpay_signature
+          })
+        });
+        
+        const verifyData = await verifyRes.json();
+        
+        if (verifyData.success) {
+          markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
+          
+          addChatMessage({
+            sender: 'bot',
+            text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+            type: 'text'
+          });
+          setChatState('ORDER_CONFIRMED');
+        } else {
+          throw new Error("Payment verification failed securely.");
+        }
+        setIsProcessingPayment(false);
+      }).catch((error: any) => {
+        // Payment Failed or Closed
+        console.error("Razorpay Error:", error);
+        addChatMessage({
+          sender: 'bot',
+          text: `Payment could not be completed. Your order has not been marked as paid. You can try again securely.`,
+          type: 'text'
+        });
+        setIsProcessingPayment(false);
+      });
+      
+    } catch (err: any) {
+      console.error(err);
       addChatMessage({
         sender: 'bot',
-        text: `🎉 Order Confirmed!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${orderId}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+        text: `Error initiating payment: ${err.message}. Please try again.`,
         type: 'text'
       });
-      setChatState('ORDER_CONFIRMED');
-    }, 1500);
+      setIsProcessingPayment(false);
+    }
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
@@ -492,13 +573,18 @@ export default function CustomerChatScreen() {
 
           {item.type === 'checkout' && (
             <View style={styles.cardBlock}>
-              <Text style={styles.boldText}>Payment Options (Demo)</Text>
-              <TouchableOpacity style={styles.paymentBtn} onPress={() => handlePayment('razorpay')}>
-                <Text style={styles.paymentBtnText}>💙 Razorpay Demo (Pay ₹{getCartTotal().total.toFixed(2)})</Text>
+              <Text style={styles.boldText}>Secure Payment (Razorpay)</Text>
+              
+              <TouchableOpacity 
+                style={[styles.paymentBtn, isProcessingPayment && {opacity: 0.7}]} 
+                onPress={handlePayment}
+                disabled={isProcessingPayment}
+              >
+                <Text style={styles.paymentBtnText}>
+                  {isProcessingPayment ? "Processing..." : `Pay ₹${getCartTotal().total.toFixed(2)} securely via UPI / Razorpay`}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.paymentBtn} onPress={() => handlePayment('whatsapp')}>
-                <Text style={styles.paymentBtnText}>🟢 WhatsApp Payment Demo (Pay ₹{getCartTotal().total.toFixed(2)})</Text>
-              </TouchableOpacity>
+              
             </View>
           )}
 
