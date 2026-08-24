@@ -73,9 +73,8 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 const generateOrderId = (orders: any[]) => {
   const d = new Date();
   const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
-  const todayOrders = orders.filter(o => o.id.startsWith(`#RL${dateStr}`));
-  const nextNumber = (todayOrders.length + 1).toString().padStart(3, '0');
-  return `#RL${dateStr}${nextNumber}`;
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `#RL${dateStr}-${randomSuffix}`;
 };
 
 export const useStore = create<AppState>()(
