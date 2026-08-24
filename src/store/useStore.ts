@@ -40,7 +40,7 @@ interface AppState {
   loginDeliveryPartner: (phone: string) => boolean;
   logoutDeliveryPartner: () => void;
   togglePartnerStatus: () => void;
-  createOrder: (paymentMethod: string) => string; 
+  createOrder: (paymentMethod: string) => Promise<string>; 
   markOrderAsPaid: (orderId: string, paymentMethod?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignDeliveryPartner: (orderId: string, partnerId: string) => void;
@@ -276,7 +276,7 @@ export const useStore = create<AppState>()(
       
       removeCoupon: () => set({ appliedCoupon: null }),
       
-      createOrder: (paymentMethod) => {
+      createOrder: async (paymentMethod) => {
         const state = get();
         if (!state.currentCustomer || !state.currentAddress || state.cart.length === 0) return '';
         
@@ -328,24 +328,28 @@ export const useStore = create<AppState>()(
         }
         
         // POST to SQL Database
-        fetch('https://releaf-pads-backend.onrender.com/api/orders/full', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: newOrder.id,
-            customerId: newOrder.customerId,
-            addressId: newOrder.addressId,
-            couponId: newOrder.couponId,
-            subtotal: newOrder.subtotal,
-            delivery: newOrder.delivery,
-            total: newOrder.total,
-            paymentStatus: newOrder.paymentStatus,
-            status: newOrder.status,
-            date: newOrder.date,
-            items: newOrder.items,
-            trackingEvents: newOrder.trackingEvents
-          })
-        }).catch(err => console.error('Failed to save order to DB:', err));
+        try {
+          await fetch('https://releaf-pads-backend.onrender.com/api/orders/full', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: newOrder.id,
+              customerId: newOrder.customerId,
+              addressId: newOrder.addressId,
+              couponId: newOrder.couponId,
+              subtotal: newOrder.subtotal,
+              delivery: newOrder.delivery,
+              total: newOrder.total,
+              paymentStatus: newOrder.paymentStatus,
+              status: newOrder.status,
+              date: newOrder.date,
+              items: newOrder.items,
+              trackingEvents: newOrder.trackingEvents
+            })
+          });
+        } catch (err) {
+          console.error('Failed to save order to DB:', err);
+        }
         
         newOrder.trackingEvents.forEach(te => te.orderId = newOrder.id);
         
