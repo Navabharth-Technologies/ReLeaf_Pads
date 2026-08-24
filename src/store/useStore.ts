@@ -41,6 +41,7 @@ interface AppState {
   logoutDeliveryPartner: () => void;
   togglePartnerStatus: () => void;
   createOrder: (paymentMethod: string) => string; 
+  markOrderAsPaid: (orderId: string, paymentMethod?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignDeliveryPartner: (orderId: string, partnerId: string) => void;
   cancelOrder: (orderId: string) => void;
@@ -302,7 +303,7 @@ export const useStore = create<AppState>()(
           subtotal,
           delivery,
           total,
-          paymentStatus: 'PAID',
+          paymentStatus: 'PENDING',
           status: 'ORDER_CONFIRMED',
           date: now,
           trackingEvents: [
@@ -403,6 +404,18 @@ export const useStore = create<AppState>()(
         return newOrder.id;
       },
       
+      markOrderAsPaid: (orderId, paymentMethod) => {
+        set((state) => {
+          const updatedOrders = state.orders.map(o => {
+            if (o.id === orderId) {
+              return { ...o, paymentStatus: 'PAID', paymentMethod };
+            }
+            return o;
+          });
+          return { orders: updatedOrders };
+        });
+      },
+
       updateOrderStatus: (orderId, status) => {
         const state = get();
         const order = state.orders.find(o => o.id === orderId);

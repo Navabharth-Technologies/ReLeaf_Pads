@@ -43,6 +43,14 @@ export default function OwnerOrdersScreen() {
           </View>
         </View>
         
+        <View style={{ marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={[styles.statusBadge, { backgroundColor: item.paymentStatus === 'PAID' ? '#dcfce7' : '#fee2e2', paddingHorizontal: 8, paddingVertical: 4 }]}>
+             <Text style={[styles.statusText, { color: item.paymentStatus === 'PAID' ? '#166534' : '#991b1b', fontSize: 11 }]}>
+               {item.paymentStatus} {item.paymentMethod ? `(${item.paymentMethod})` : ''}
+             </Text>
+          </View>
+        </View>
+        
         <View style={styles.customerRow}>
           <Text style={styles.customerName}>{customer?.name || 'Customer'}</Text>
           <Text style={styles.customerPhone}>{customer?.phone}</Text>

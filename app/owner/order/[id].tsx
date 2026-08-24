@@ -130,6 +130,15 @@ export default function OwnerOrderDetailScreen() {
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>₹{(order.total || 0).toFixed(2)}</Text>
           </View>
+          
+          <View style={[styles.totalRow, { borderTopWidth: 0, paddingTop: 4 }]}>
+            <Text style={styles.subtotalLabel}>Payment Status</Text>
+            <View style={[styles.statusBadge, { backgroundColor: order.paymentStatus === 'PAID' ? '#dcfce7' : '#fee2e2' }]}>
+              <Text style={[styles.statusText, { color: order.paymentStatus === 'PAID' ? '#166534' : '#991b1b' }]}>
+                {order.paymentStatus} {order.paymentMethod ? `(${order.paymentMethod})` : ''}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.card}>
