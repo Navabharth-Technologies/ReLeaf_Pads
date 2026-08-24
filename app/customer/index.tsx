@@ -112,7 +112,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch('http://localhost:5000/api/customers');
+          const res = await fetch('https://releaf-pads-backend.onrender.com/api/customers');
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
