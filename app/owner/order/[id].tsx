@@ -122,13 +122,13 @@ export default function OwnerOrderDetailScreen() {
           {order.couponId && (
             <View style={styles.subtotalRow}>
               <Text style={styles.couponLabel}>Coupon ({coupons.find(c => c.id === order.couponId)?.code || order.couponId})</Text>
-              <Text style={styles.couponValue}>-₹{order.discountAmount?.toFixed(2)}</Text>
+              <Text style={styles.couponValue}>-₹{(order.discountAmount || 0).toFixed(2)}</Text>
             </View>
           )}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{order.total.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>₹{(order.total || 0).toFixed(2)}</Text>
           </View>
         </View>
 
