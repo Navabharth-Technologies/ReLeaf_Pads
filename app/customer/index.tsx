@@ -277,7 +277,8 @@ export default function CustomerChatScreen() {
       const releafOrderId = await createOrder('RAZORPAY');
       
       // 2. Fetch Razorpay Order ID from Backend
-      const response = await fetch('https://releaf-pads-backend.onrender.com/api/payments/create-order', {
+      const API_URL = __DEV__ ? 'http://localhost:5000' : 'https://releaf-pads-backend.onrender.com';
+      const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: releafOrderId })
@@ -310,8 +311,7 @@ export default function CustomerChatScreen() {
       RazorpayCheckout.open(options).then(async (paymentData: any) => {
         // Payment Success!
         // The backend webhook will ALSO verify this, but we verify here for the UI flow.
-        
-        const verifyRes = await fetch('https://releaf-pads-backend.onrender.com/api/payments/verify', {
+        const verifyRes = await fetch(`${API_URL}/api/payments/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

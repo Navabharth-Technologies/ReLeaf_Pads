@@ -329,7 +329,8 @@ export const useStore = create<AppState>()(
         
         // POST to SQL Database
         try {
-          await fetch('https://releaf-pads-backend.onrender.com/api/orders/full', {
+          const API_URL = __DEV__ ? 'http://localhost:5000' : 'https://releaf-pads-backend.onrender.com';
+          const response = await fetch(`${API_URL}/api/orders/full`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -347,8 +348,14 @@ export const useStore = create<AppState>()(
               trackingEvents: newOrder.trackingEvents
             })
           });
+          
+          if (!response.ok) {
+             const errorData = await response.text();
+             throw new Error(`DB Save Failed: ${errorData}`);
+          }
         } catch (err) {
           console.error('Failed to save order to DB:', err);
+          throw err;
         }
         
         newOrder.trackingEvents.forEach(te => te.orderId = newOrder.id);
