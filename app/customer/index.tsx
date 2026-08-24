@@ -274,7 +274,7 @@ export default function CustomerChatScreen() {
 
     try {
       // 1. Create PENDING Order in Zustand & Database
-      const releafOrderId = createOrder('RAZORPAY');
+      const releafOrderId = await createOrder('RAZORPAY');
       
       // 2. Fetch Razorpay Order ID from Backend
       const response = await fetch('https://releaf-pads-backend.onrender.com/api/payments/create-order', {
