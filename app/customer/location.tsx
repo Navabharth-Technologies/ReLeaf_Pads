@@ -89,12 +89,25 @@ export default function LocationScreen() {
   }, []);
 
   const handleRecenter = async () => {
-    if (!location) return;
-    setSelectedCoords({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude
-    });
-    fetchAddressFromCoords(location.coords.latitude, location.coords.longitude);
+    setLoading(true);
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setErrorMsg('Location access is unavailable.');
+      setLoading(false);
+      return;
+    }
+    try {
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+      setSelectedCoords({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude
+      });
+      await fetchAddressFromCoords(currentLocation.coords.latitude, currentLocation.coords.longitude);
+    } catch (error) {
+      console.warn(error);
+    }
+    setLoading(false);
   };
 
   const confirmLocation = () => {

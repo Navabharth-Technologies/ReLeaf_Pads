@@ -20,7 +20,13 @@
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/logo.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.tejashwini_s.ReLeaf_Pads",
+      "config": {
+        "googleMaps": {
+          "apiKey": "dummy_key_to_prevent_crash_releaf_pads"
+        }
+      }
     },
     "experiments": {
       "baseUrl": "/ReLeaf_Pads"

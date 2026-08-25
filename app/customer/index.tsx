@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Send, Truck, ChevronRight } from 'lucide-react-native';
@@ -277,7 +278,9 @@ export default function CustomerChatScreen() {
       const releafOrderId = await createOrder('RAZORPAY');
       
       // 2. Fetch Razorpay Order ID from Backend
-      const API_URL = __DEV__ ? 'http://localhost:5000' : 'https://releaf-pads-backend.onrender.com';
+      const { Platform } = require('react-native');
+      const localUrl = 'http://192.168.1.3:5000';
+      const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend.onrender.com';
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
