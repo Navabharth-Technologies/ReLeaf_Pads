@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { 
   Product, Customer, Order, ChatMessage, CartItem, OrderItem,
   Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent, Coupon
@@ -328,7 +329,8 @@ export const useStore = create<AppState>()(
         
         // POST to SQL Database
         try {
-          const API_URL = __DEV__ ? 'http://localhost:5000' : 'https://releaf-pads-backend.onrender.com';
+          const localUrl = 'http://192.168.1.3:5000';
+          const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend.onrender.com';
           const response = await fetch(`${API_URL}/api/orders/full`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
