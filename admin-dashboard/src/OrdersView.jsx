@@ -35,7 +35,7 @@ const OrdersView = () => {
 
   const handleAssignPartner = async (orderId, partnerId) => {
     try {
-      await axios.put(`${API_URL}/api/orders/${orderId}/status`, {
+      await axios.put(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/status`, {
         status: 'PROCESSING',
         deliveryPartnerId: partnerId
       });
@@ -49,7 +49,7 @@ const OrdersView = () => {
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
-      await axios.put(`${API_URL}/api/orders/${orderId}/status`, {
+      await axios.put(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/status`, {
         status: newStatus
       });
       fetchData();
