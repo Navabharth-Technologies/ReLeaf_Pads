@@ -1,0 +1,111 @@
+.orders-container {
+  padding: 24px;
+  background-color: #f8f9fa;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.orders-header h2 {
+  font-size: 1.5rem;
+  color: #111b21;
+}
+
+.refresh-btn {
+  background-color: #00a884;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+  background-color: #008f6f;
+}
+
+.orders-table-wrapper {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table th, .orders-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #e9edef;
+  font-size: 0.9rem;
+}
+
+.orders-table th {
+  background-color: #f0f2f5;
+  color: #667781;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.order-id {
+  font-family: monospace;
+  color: #00a884;
+}
+
+.order-total {
+  font-weight: bold;
+}
+
+.item-badge {
+  background-color: #f0f2f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  display: inline-block;
+  font-size: 0.8rem;
+  border: 1px solid #e9edef;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* Payment Statuses */
+.payment-paid { background-color: #d4edda; color: #155724; }
+.payment-pending { background-color: #fff3cd; color: #856404; }
+.payment-failed { background-color: #f8d7da; color: #721c24; }
+
+/* Order Statuses */
+.status-pending-address { background-color: #e2e3e5; color: #383d41; }
+.status-pending { background-color: #fff3cd; color: #856404; }
+.status-processing { background-color: #cce5ff; color: #004085; }
+.status-shipped { background-color: #d1ecf1; color: #0c5460; }
+.status-delivered { background-color: #d4edda; color: #155724; }
+.status-cancelled { background-color: #f8d7da; color: #721c24; }
+
+.partner-select, .status-action-select {
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  outline: none;
+  width: 100%;
+}
+
+.actions-cell {
+  min-width: 150px;
+}
