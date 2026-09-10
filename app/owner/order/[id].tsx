@@ -57,9 +57,7 @@ export default function OwnerOrderDetailScreen() {
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Details</Text>
-        <TouchableOpacity onPress={() => demoFastForward(order.id)}>
-          <Play size={20} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
