@@ -144,7 +144,7 @@ export default function OwnerOrderDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Order Management</Text>
 
-          {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED'].includes(order.status) && (
+          {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PROCESSING'].includes(order.status) && (
             <TouchableOpacity style={styles.actionBtn} onPress={() => updateOrderStatus(order.id, 'PREPARING')}>
               <Text style={styles.actionBtnText}>Start Preparing Order</Text>
             </TouchableOpacity>
