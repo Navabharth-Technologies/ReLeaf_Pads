@@ -10,7 +10,7 @@ export default function RoleSelectionScreen() {
   const { resetDemo } = useStore();
 
   useEffect(() => {
-    resetDemo();
+    // Initialization or analytics can go here
   }, []);
 
   return (
@@ -30,7 +30,6 @@ export default function RoleSelectionScreen() {
           <TouchableOpacity 
             style={styles.buttonPrimary} 
             onPress={() => {
-              resetDemo();
               router.push('/customer');
             }}
           >
