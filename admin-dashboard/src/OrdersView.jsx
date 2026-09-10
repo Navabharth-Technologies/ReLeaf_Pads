@@ -36,7 +36,7 @@ const OrdersView = () => {
   const handleAssignPartner = async (orderId, partnerId) => {
     try {
       await axios.put(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/status`, {
-        status: 'PROCESSING',
+        status: 'ASSIGNED',
         deliveryPartnerId: partnerId
       });
       // Refresh data
@@ -93,8 +93,21 @@ const OrdersView = () => {
                   <td className="order-id">{order.id}</td>
                   <td>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                   <td>
-                    {order.customerid} <br/>
-                    <small style={{color: '#666'}}>{order.addressid}</small>
+                    <div style={{fontWeight: 'bold'}}>{order.customerid}</div>
+                    {order.deliveryAddress ? (
+                       <small style={{color: '#666', display: 'block', marginTop: '4px'}}>
+                         {order.deliveryAddress.houseNumber && <span>{order.deliveryAddress.houseNumber}, </span>}
+                         {order.deliveryAddress.buildingName && <span>{order.deliveryAddress.buildingName}, </span>}
+                         {order.deliveryAddress.street && <div>{order.deliveryAddress.street}</div>}
+                         {order.deliveryAddress.area && <div>{order.deliveryAddress.area}</div>}
+                         {order.deliveryAddress.city && <div>{order.deliveryAddress.city} - {order.deliveryAddress.pincode}</div>}
+                         {(order.deliveryAddress.latitude && order.deliveryAddress.longitude) ? 
+                            <div style={{color: '#007bff', marginTop: 4}}>📍 GPS Confirmed</div> : null
+                         }
+                       </small>
+                    ) : (
+                       <small style={{color: '#999'}}>No Address ({order.addressid})</small>
+                    )}
                   </td>
                   <td>
                     <div className="order-items-list">
@@ -136,8 +149,8 @@ const OrdersView = () => {
                          onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
                        >
                          <option value="" disabled>Update Status...</option>
-                         <option value="PROCESSING">Mark Processing</option>
-                         <option value="SHIPPED">Mark Shipped</option>
+                         <option value="ASSIGNED">Mark Assigned</option>
+                         <option value="OUT_FOR_DELIVERY">Mark Out for Delivery</option>
                          <option value="DELIVERED">Mark Delivered</option>
                          <option value="CANCELLED">Cancel Order</option>
                        </select>

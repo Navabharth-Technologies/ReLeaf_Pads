@@ -93,8 +93,8 @@
 /* Order Statuses */
 .status-pending-address { background-color: #e2e3e5; color: #383d41; }
 .status-pending { background-color: #fff3cd; color: #856404; }
-.status-processing { background-color: #cce5ff; color: #004085; }
-.status-shipped { background-color: #d1ecf1; color: #0c5460; }
+.status-assigned { background-color: #cce5ff; color: #004085; }
+.status-out-for-delivery { background-color: #d1ecf1; color: #0c5460; }
 .status-delivered { background-color: #d4edda; color: #155724; }
 .status-cancelled { background-color: #f8d7da; color: #721c24; }
 

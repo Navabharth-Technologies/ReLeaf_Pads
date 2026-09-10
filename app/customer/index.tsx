@@ -115,7 +115,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch('https://releaf-pads-backend.onrender.com/api/customers');
+          const res = await fetch('https://releaf-pads-backend-1.onrender.com/api/customers');
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
@@ -245,11 +245,37 @@ export default function CustomerChatScreen() {
           addChatMessage({ sender: 'bot', text: res.message, type: 'text' });
         }
       } else {
-        addChatMessage({
-          sender: 'bot',
-          text: "I can help you shop, track an order, or check delivery.",
-          type: 'text'
-        });
+        // AI Fallback Integration
+        const localUrl = 'http://192.168.1.3:10000';
+        const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
+        const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
+        
+        try {
+          // Show typing indicator or just wait (it's fast enough)
+          const res = await fetch(`${API_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, customerId })
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            addChatMessage({
+              sender: 'bot',
+              text: data.reply,
+              type: 'text'
+            });
+          } else {
+            throw new Error("Failed to connect to AI");
+          }
+        } catch (err) {
+          console.error("AI Chat Error:", err);
+          addChatMessage({
+            sender: 'bot',
+            text: "I'm having trouble thinking right now. But I can still help you shop, track an order, or check delivery! 🌿",
+            type: 'text'
+          });
+        }
       }
     }
   };
@@ -280,7 +306,7 @@ export default function CustomerChatScreen() {
       // 2. Fetch Razorpay Order ID from Backend
       const { Platform } = require('react-native');
       const localUrl = 'http://192.168.1.3:5000';
-      const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend.onrender.com';
+      const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -311,45 +337,117 @@ export default function CustomerChatScreen() {
       };
       
       // 4. Open Checkout
-      RazorpayCheckout.open(options).then(async (paymentData: any) => {
-        // Payment Success!
-        // The backend webhook will ALSO verify this, but we verify here for the UI flow.
-        const verifyRes = await fetch(`${API_URL}/api/payments/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-             orderId: releafOrderId,
-             razorpayPaymentId: paymentData.razorpay_payment_id,
-             razorpayOrderId: paymentData.razorpay_order_id,
-             razorpaySignature: paymentData.razorpay_signature
-          })
-        });
+      if (Platform.OS === 'web') {
+        // --- Web Checkout Flow ---
+        const loadRazorpay = () => {
+          return new Promise((resolve) => {
+            if ((window as any).Razorpay) return resolve(true);
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+          });
+        };
         
-        const verifyData = await verifyRes.json();
+        const isSdkLoaded = await loadRazorpay();
+        if (!isSdkLoaded) throw new Error("Razorpay SDK failed to load. Are you online?");
         
-        if (verifyData.success) {
-          markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
-          
+        const webOptions = {
+          ...options,
+          handler: async function (paymentData: any) {
+            try {
+              const verifyRes = await fetch(`${API_URL}/api/payments/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: releafOrderId,
+                  razorpayPaymentId: paymentData.razorpay_payment_id,
+                  razorpayOrderId: paymentData.razorpay_order_id,
+                  razorpaySignature: paymentData.razorpay_signature
+                })
+              });
+              
+              const verifyData = await verifyRes.json();
+              
+              if (verifyData.success) {
+                markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
+                addChatMessage({
+                  sender: 'bot',
+                  text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+                  type: 'text'
+                });
+                setChatState('ORDER_CONFIRMED');
+              } else {
+                throw new Error("Payment verification failed securely.");
+              }
+            } catch (err: any) {
+              console.error("Web Verification Error:", err);
+            } finally {
+              setIsProcessingPayment(false);
+            }
+          }
+        };
+        
+        const rzp = new (window as any).Razorpay(webOptions);
+        rzp.on('payment.failed', function (response: any) {
+          console.error("Razorpay Web Error:", response.error);
           addChatMessage({
             sender: 'bot',
-            text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+            text: `Payment could not be completed. Your order has not been marked as paid. You can try again securely.`,
             type: 'text'
           });
-          setChatState('ORDER_CONFIRMED');
-        } else {
-          throw new Error("Payment verification failed securely.");
-        }
-        setIsProcessingPayment(false);
-      }).catch((error: any) => {
-        // Payment Failed or Closed
-        console.error("Razorpay Error:", error);
-        addChatMessage({
-          sender: 'bot',
-          text: `Payment could not be completed. Your order has not been marked as paid. You can try again securely.`,
-          type: 'text'
+          setIsProcessingPayment(false);
         });
-        setIsProcessingPayment(false);
-      });
+        
+        // Handle user closing the modal without paying
+        const originalClose = rzp.close;
+        let paymentCompletedOrFailed = false;
+        
+        rzp.open();
+        
+      } else {
+        // --- Native Mobile Checkout Flow ---
+        RazorpayCheckout.open(options).then(async (paymentData: any) => {
+          // Payment Success!
+          // The backend webhook will ALSO verify this, but we verify here for the UI flow.
+          const verifyRes = await fetch(`${API_URL}/api/payments/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+               orderId: releafOrderId,
+               razorpayPaymentId: paymentData.razorpay_payment_id,
+               razorpayOrderId: paymentData.razorpay_order_id,
+               razorpaySignature: paymentData.razorpay_signature
+            })
+          });
+          
+          const verifyData = await verifyRes.json();
+          
+          if (verifyData.success) {
+            markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
+            
+            addChatMessage({
+              sender: 'bot',
+              text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+              type: 'text'
+            });
+            setChatState('ORDER_CONFIRMED');
+          } else {
+            throw new Error("Payment verification failed securely.");
+          }
+          setIsProcessingPayment(false);
+        }).catch((error: any) => {
+          // Payment Failed or Closed
+          console.error("Razorpay Error:", error);
+          addChatMessage({
+            sender: 'bot',
+            text: `Payment could not be completed. Your order has not been marked as paid. You can try again securely.`,
+            type: 'text'
+          });
+          setIsProcessingPayment(false);
+        });
+      }
       
     } catch (err: any) {
       console.error(err);
