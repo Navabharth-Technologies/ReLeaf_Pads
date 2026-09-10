@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '../../../src/theme/colors';
 import { useStore } from '../../../src/store/useStore';
 import { MapPin, Phone, User, Package, Check, ArrowRight, Navigation } from 'lucide-react-native';
+import Map from '../../../src/components/Map';
 
 export default function DeliveryOrderDetail() {
   const { id } = useLocalSearchParams();
@@ -30,22 +31,19 @@ export default function DeliveryOrderDetail() {
           { text: 'OK', onPress: () => router.replace('/delivery') }
         ]);
       }
-    }, 800);
+    }, 1000);
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.orderId}>{order.id}</Text>
-        <View style={[
-          styles.statusBadge, 
-          { backgroundColor: order.status === 'OUT_FOR_DELIVERY' ? '#F59E0B' : colors.softPurple }
-        ]}>
-          <Text style={[
-            styles.statusText,
-            { color: order.status === 'OUT_FOR_DELIVERY' ? colors.white : colors.primary }
-          ]}>
-            {order.status.replace(/_/g, ' ')}
+        <View style={styles.headerLeft}>
+          <Text style={styles.orderId}>{order.id}</Text>
+          <Text style={styles.orderDate}>{new Date(order.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</Text>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: order.status === 'OUT_FOR_DELIVERY' ? colors.primary + '20' : colors.warning + '20' }]}>
+          <Text style={[styles.statusText, { color: order.status === 'OUT_FOR_DELIVERY' ? colors.primary : colors.warning }]}>
+            {order.status === 'OUT_FOR_DELIVERY' ? 'Out for Delivery' : 'Assigned'}
           </Text>
         </View>
       </View>
@@ -97,12 +95,17 @@ export default function DeliveryOrderDetail() {
                 <Text style={styles.locationPinText}>
                   {address.latitude ? '📍 Location Confirmed' : '📍 Location (Text Address)'}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                
+                {address.latitude && address.longitude && (
+                  <View style={{ height: 180, width: '100%', marginTop: 10, borderRadius: 12, overflow: 'hidden' }}>
+                    <Map latitude={address.latitude} longitude={address.longitude} popupText="Customer Location" />
+                  </View>
+                )}
+
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                   <TouchableOpacity 
                     style={[styles.viewLocationBtn, { flex: 1, marginTop: 0, backgroundColor: '#4285F4', borderColor: '#4285F4', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} 
                     onPress={() => {
-                      // Use coordinates if available since they are now strictly validated to Mysore. 
-                      // This avoids Google Maps text search failing on overly specific building names or landmarks.
                       const fullTextAddress = `${address.houseNumber ? address.houseNumber + ', ' : ''}${address.buildingName ? address.buildingName + ', ' : ''}${address.street ? address.street + ', ' : ''}${address.area ? address.area + ', ' : ''}Mysore, Karnataka - ${address.pincode}`.replace(/\s+/g, ' ').trim();
                       const dest = (address.latitude && address.longitude) 
                         ? `${address.latitude},${address.longitude}` 
@@ -112,7 +115,7 @@ export default function DeliveryOrderDetail() {
                     }}
                   >
                     <Navigation size={14} color={colors.white} />
-                    <Text style={[styles.viewLocationBtnText, { color: colors.white }]}>Google Maps</Text>
+                    <Text style={[styles.viewLocationBtnText, { color: colors.white }]}>Start Navigation</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -195,12 +198,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
+  },
+  headerLeft: {
+    flex: 1,
   },
   orderId: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: colors.text,
+  },
+  orderDate: {
+    fontSize: 13,
+    color: colors.mutedText,
+    marginTop: 4,
   },
   statusBadge: {
     paddingHorizontal: 12,
