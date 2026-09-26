@@ -1,0 +1,33 @@
+{
+  "name": "releaf-pads-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "dependencies": {
+    "electron-serve": "^2.1.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "electron": "^32.0.1",
+    "electron-builder": "^24.13.3"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.releafpads.desktop",
+    "win": {
+      "icon": "../assets/logo.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "directories": {
+      "output": "../electron-dist"
+    },
+    "extraMetadata": {
+      "main": "main.js"
+    }
+  }
+}

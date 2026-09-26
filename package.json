@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.9",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native/codegen": "^0.87.1",
     "expo": "~57.0.12",
     "expo-constants": "~57.0.10",
     "expo-image-picker": "~57.0.9",
@@ -22,10 +23,14 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-web": "^0.21.2",
+    "yargs": "^18.1.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-serve": "^3.0.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
