@@ -896,13 +896,27 @@ export const useStore = create<AppState>()(
       fetchProducts: async () => {
         try {
           // You may need to change localhost to your PC's IP if running on an Android emulator or physical device.
-          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/products');
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            set({ products: data });
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/products', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36'
+            }
+          });
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            if (Array.isArray(data)) {
+              set({ products: data });
+            } else {
+              alert('Error: Data is not an array. Please check backend.');
+            }
+          } catch (e) {
+            alert('JSON Parse Error: ' + text.substring(0, 100));
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to fetch products from backend:', error);
+          alert('Network Fetch Error: ' + error.message);
         }
       }
     }),
