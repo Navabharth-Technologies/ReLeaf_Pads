@@ -474,15 +474,16 @@ export default function CustomerChatScreen() {
             />
           </View>
         )}
-        <View style={[
-          styles.messageBubble, 
-          isBot ? styles.bubbleBot : styles.bubbleUser,
-          item.type !== 'text' && { maxWidth: '100%' }
-        ]}>
+        <View style={{ flex: 1, alignItems: isBot ? 'flex-start' : 'flex-end' }}>
           {item.text ? (
-            <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
-              {item.text}
-            </Text>
+            <View style={[
+              styles.messageBubble, 
+              isBot ? styles.bubbleBot : styles.bubbleUser
+            ]}>
+              <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
+                {item.text}
+              </Text>
+            </View>
           ) : null}
 
           {item.type === 'add_to_cart_success' && (
