@@ -22,10 +22,11 @@ export default function OwnerProductsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      base64: true,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0].base64) {
+      setImageUri(`data:image/jpeg;base64,${result.assets[0].base64}`);
     }
   };
 
@@ -35,10 +36,11 @@ export default function OwnerProductsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      base64: true,
     });
 
-    if (!result.canceled) {
-      updateProductImage(productId, result.assets[0].uri);
+    if (!result.canceled && result.assets[0].base64) {
+      updateProductImage(productId, `data:image/jpeg;base64,${result.assets[0].base64}`);
     }
   };
 

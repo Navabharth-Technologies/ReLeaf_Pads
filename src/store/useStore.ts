@@ -111,9 +111,20 @@ export const useStore = create<AppState>()(
       toggleProductActive: (productId) => set((state) => ({
         products: state.products.map(p => p.id === productId ? { ...p, active: !p.active } : p)
       })),
-      updateProductImage: (productId, imageUrl) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
-      })),
+      updateProductImage: async (productId, imageUrl) => {
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
+        }));
+        try {
+          await fetch(`https://marc-computers-tourist-surprise.trycloudflare.com/api/products/${productId}/image`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl })
+          });
+        } catch (err) {
+          console.error('Failed to save image to backend:', err);
+        }
+      },
 
       updateProductStock: (productId, change) => set((state) => {
         return {
@@ -333,8 +344,8 @@ export const useStore = create<AppState>()(
         
         // POST to SQL Database
         try {
-          const localUrl = 'http://192.168.1.3:5001';
-          const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
+          const localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
+          const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
           const response = await fetch(`${API_URL}/api/orders/full`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -438,7 +449,7 @@ export const useStore = create<AppState>()(
         if (!order) return;
 
         // POST to SQL Database
-        fetch(`https://releaf-pads-backend-1.onrender.com/api/orders/${encodeURIComponent(orderId)}/status`, {
+        fetch(`https://marc-computers-tourist-surprise.trycloudflare.com/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
@@ -562,7 +573,7 @@ export const useStore = create<AppState>()(
         const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
         
         // POST to SQL Database
-        fetch(`https://releaf-pads-backend-1.onrender.com/api/orders/${encodeURIComponent(orderId)}/status`, {
+        fetch(`https://marc-computers-tourist-surprise.trycloudflare.com/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'ASSIGNED', deliveryPartnerId: partnerId })
@@ -659,7 +670,7 @@ export const useStore = create<AppState>()(
         };
         
         // POST to SQL Database
-        fetch('https://releaf-pads-backend-1.onrender.com/api/customers', {
+        fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCustomer)
@@ -667,7 +678,7 @@ export const useStore = create<AppState>()(
         .then(() => {
           if (newCustomer.addresses.length > 0) {
             newCustomer.addresses.forEach(addr => {
-              fetch(`https://releaf-pads-backend-1.onrender.com/api/customers/${id}/addresses`, {
+              fetch(`https://marc-computers-tourist-surprise.trycloudflare.com/api/customers/${id}/addresses`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(addr)
@@ -685,7 +696,7 @@ export const useStore = create<AppState>()(
       },
       
       addAddressToCustomer: (customerId, address) => {
-        fetch(`https://releaf-pads-backend-1.onrender.com/api/customers/${customerId}/addresses`, {
+        fetch(`https://marc-computers-tourist-surprise.trycloudflare.com/api/customers/${customerId}/addresses`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(address)
@@ -753,7 +764,7 @@ export const useStore = create<AppState>()(
       addDeliveryPartner: async (name, phone) => {
         try {
           // POST to SQL Database
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/delivery-partners', {
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/delivery-partners', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone })
@@ -783,7 +794,7 @@ export const useStore = create<AppState>()(
 
       fetchDeliveryPartners: async () => {
         try {
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/delivery-partners');
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/delivery-partners');
           const data = await response.json();
           // Map DB schema to frontend schema
           const mappedPartners = data.map((dp: any) => ({
@@ -801,7 +812,7 @@ export const useStore = create<AppState>()(
 
       fetchCustomers: async () => {
         try {
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/customers');
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/customers');
           const data = await response.json();
           set({ customers: data });
         } catch (error) {
@@ -811,7 +822,7 @@ export const useStore = create<AppState>()(
 
       fetchOrders: async () => {
         try {
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/orders');
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/orders');
           const data = await response.json();
           set({ orders: data });
         } catch (error) {
@@ -821,7 +832,7 @@ export const useStore = create<AppState>()(
       
       fetchCoupons: async () => {
         try {
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/coupons');
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/coupons');
           const data = await response.json();
           set({ coupons: data });
         } catch (error) {
@@ -871,7 +882,7 @@ export const useStore = create<AppState>()(
         };
 
         // POST to SQL Database
-        fetch('https://releaf-pads-backend-1.onrender.com/api/coupons', {
+        fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/coupons', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCoupon)
@@ -885,7 +896,7 @@ export const useStore = create<AppState>()(
       fetchProducts: async () => {
         try {
           // You may need to change localhost to your PC's IP if running on an Android emulator or physical device.
-          const response = await fetch('https://releaf-pads-backend-1.onrender.com/api/products');
+          const response = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/products');
           const data = await response.json();
           if (Array.isArray(data)) {
             set({ products: data });

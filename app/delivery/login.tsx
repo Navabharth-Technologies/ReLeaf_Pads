@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
@@ -74,7 +75,7 @@ export default function DeliveryLoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -143,6 +144,7 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     width: '100%',
     alignSelf: 'center',
+    paddingBottom: 40,
   },
   iconContainer: {
     width: 80,

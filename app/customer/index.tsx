@@ -115,7 +115,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch('https://releaf-pads-backend-1.onrender.com/api/customers');
+          const res = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/customers');
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
@@ -246,8 +246,8 @@ export default function CustomerChatScreen() {
         }
       } else {
         // AI Fallback Integration
-        const localUrl = 'http://192.168.1.3:10000';
-        const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
+        const localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
+        const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {
@@ -305,8 +305,8 @@ export default function CustomerChatScreen() {
       
       // 2. Fetch Razorpay Order ID from Backend
       const { Platform } = require('react-native');
-      const localUrl = 'http://192.168.1.3:5000';
-      const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
+      const localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
+      const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -474,10 +474,16 @@ export default function CustomerChatScreen() {
             />
           </View>
         )}
-        <View style={[styles.messageBubble, isBot ? styles.bubbleBot : styles.bubbleUser]}>
-          <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
-            {item.text}
-          </Text>
+        <View style={[
+          styles.messageBubble, 
+          isBot ? styles.bubbleBot : styles.bubbleUser,
+          item.type !== 'text' && { maxWidth: '100%' }
+        ]}>
+          {item.text ? (
+            <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
+              {item.text}
+            </Text>
+          ) : null}
 
           {item.type === 'add_to_cart_success' && (
             <TouchableOpacity
@@ -815,8 +821,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginTop: 4,
   },
-  messageBubble: { maxWidth: '85%', padding: 12, borderRadius: 16 },
-  bubbleBot: { backgroundColor: colors.chatBubbleIn, borderBottomLeftRadius: 4 },
+  messageBubble: { 
+    maxWidth: '85%', 
+    padding: 12, 
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  bubbleBot: { backgroundColor: colors.white, borderBottomLeftRadius: 4 },
   bubbleUser: { backgroundColor: colors.chatBubbleOut, borderBottomRightRadius: 4 },
   messageText: { fontSize: 15, lineHeight: 22 },
   textBot: { color: colors.text },

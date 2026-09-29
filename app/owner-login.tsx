@@ -19,12 +19,12 @@ export default function OwnerLoginScreen() {
     
     setLoading(true);
     try {
-      let localUrl = 'http://192.168.1.3:5001';
+      let localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
       if (Platform.OS === 'web') {
-        localUrl = 'http://localhost:5001';
+        localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
       }
       
-      const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
+      const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
       
       const response = await fetch(`${API_URL}/api/owner/login`, {
         method: 'POST',
@@ -48,16 +48,20 @@ export default function OwnerLoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color={colors.darkPurple} size={24} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Owner Portal</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      
-      <View style={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft color={colors.darkPurple} size={24} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Owner Portal</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        
+        <View style={styles.content}>
         <View style={styles.card}>
           <View style={styles.logoContainer}>
             <Image 
@@ -106,6 +110,7 @@ export default function OwnerLoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
