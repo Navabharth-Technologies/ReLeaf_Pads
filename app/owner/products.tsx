@@ -9,7 +9,7 @@ import { Product } from '../../src/store/types';
 
 export default function OwnerProductsScreen() {
   const router = useRouter();
-  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct } = useStore();
+  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct, updateProductImage } = useStore();
   const [modalVisible, setModalVisible] = React.useState(false);
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
@@ -26,6 +26,19 @@ export default function OwnerProductsScreen() {
 
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleChangeImage = async (productId: string) => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      updateProductImage(productId, result.assets[0].uri);
     }
   };
 
@@ -55,11 +68,18 @@ export default function OwnerProductsScreen() {
     return (
       <View style={styles.card}>
         <View style={styles.cardTop}>
-          {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.imagePlaceholder} />
-          ) : (
-            <View style={[styles.imagePlaceholder, { backgroundColor: item.imageFallback }]} />
-          )}
+          <TouchableOpacity onPress={() => handleChangeImage(item.id)} style={styles.imageWrapper}>
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.imagePlaceholder} />
+            ) : (
+              <View style={[styles.imagePlaceholder, { backgroundColor: item.imageFallback }]}>
+                <ImagePlus size={20} color="rgba(255,255,255,0.7)" />
+              </View>
+            )}
+            <View style={styles.editImageOverlay}>
+              <Text style={styles.editImageText}>Edit</Text>
+            </View>
+          </TouchableOpacity>
           <View style={styles.info}>
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.price}>₹{item.sellingPrice}</Text>
@@ -210,7 +230,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
   },
-  imagePlaceholder: { width: 70, height: 70, borderRadius: 8, marginRight: 12 },
+  imageWrapper: { marginRight: 12, position: 'relative' },
+  imagePlaceholder: { width: 70, height: 70, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  editImageOverlay: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'rgba(0,0,0,0.5)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, paddingVertical: 2, alignItems: 'center' },
+  editImageText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
   info: { flex: 1, justifyContent: 'center' },
   name: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 4 },
   price: { fontSize: 14, color: colors.darkPurple, fontWeight: '600', marginBottom: 8 },

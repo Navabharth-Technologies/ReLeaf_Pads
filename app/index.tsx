@@ -39,7 +39,7 @@ export default function RoleSelectionScreen() {
           <TouchableOpacity 
             style={styles.buttonPrimary} 
             onPress={() => {
-              router.push('/owner');
+              router.push('/owner-login');
             }}
           >
             <Text style={styles.buttonTextPrimary}>Continue as Owner</Text>

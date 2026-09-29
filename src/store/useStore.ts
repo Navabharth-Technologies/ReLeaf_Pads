@@ -30,6 +30,7 @@ interface AppState {
   toggleProductStock: (productId: string) => void;
   toggleProductActive: (productId: string) => void;
   updateProductStock: (productId: string, change: number) => void;
+  updateProductImage: (productId: string, imageUrl: string) => void;
   addToCart: (product: Product, quantity?: number) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -109,6 +110,9 @@ export const useStore = create<AppState>()(
       })),
       toggleProductActive: (productId) => set((state) => ({
         products: state.products.map(p => p.id === productId ? { ...p, active: !p.active } : p)
+      })),
+      updateProductImage: (productId, imageUrl) => set((state) => ({
+        products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
       })),
 
       updateProductStock: (productId, change) => set((state) => {
@@ -329,7 +333,7 @@ export const useStore = create<AppState>()(
         
         // POST to SQL Database
         try {
-          const localUrl = 'http://192.168.1.3:5000';
+          const localUrl = 'http://192.168.1.3:5001';
           const API_URL = __DEV__ ? localUrl : 'https://releaf-pads-backend-1.onrender.com';
           const response = await fetch(`${API_URL}/api/orders/full`, {
             method: 'POST',

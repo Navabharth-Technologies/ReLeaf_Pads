@@ -28,6 +28,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="customer" />
+        <Stack.Screen name="owner-login" />
         <Stack.Screen name="owner" />
       </Stack>
     </>
