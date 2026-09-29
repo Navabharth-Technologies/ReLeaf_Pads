@@ -900,14 +900,21 @@ export const useStore = create<AppState>()(
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36'
+              'Bypass-Tunnel-Reminder': 'true'
             }
           });
           const text = await response.text();
           try {
             const data = JSON.parse(text);
             if (Array.isArray(data)) {
-              set({ products: data });
+              const mappedData = data.map(item => ({
+                ...item,
+                sellingPrice: item.sellingprice || item.sellingPrice,
+                imageFallback: item.imagefallback || item.imageFallback,
+                imageUrl: item.imageurl || item.imageUrl,
+                stockStatus: item.stockstatus || item.stockStatus
+              }));
+              set({ products: mappedData });
             } else {
               alert('Error: Data is not an array. Please check backend.');
             }

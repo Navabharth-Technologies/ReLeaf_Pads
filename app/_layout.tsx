@@ -14,12 +14,6 @@ export default function RootLayout() {
     fetchCustomers();
     fetchOrders();
     fetchCoupons();
-
-    // Cross-tab syncing for the demo
-    const interval = setInterval(() => {
-      useStore.persist.rehydrate();
-    }, 1000);
-    return () => clearInterval(interval);
   }, []);
 
   return (
