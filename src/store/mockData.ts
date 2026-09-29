@@ -1,6 +1,6 @@
 import { Product, Customer, DeliveryPartner, Order, Coupon } from './types';
 
-export const mockProducts: Product[] = [];
+export const mockProducts: Product[] = [{"id":1,"name":"ReLeaf Pads (Pack of 7)","description":"Eco-friendly biodegradable sanitary pads","mrp":199,"sellingPrice":"169.00","stock":50,"imageFallback":"#E8F5E9","active":true,"stockStatus":"IN_STOCK"},{"id":2,"name":"ReLeaf Pads (Pack of 14)","description":"Eco-friendly biodegradable sanitary pads","mrp":350,"sellingPrice":"299.00","stock":100,"imageFallback":"#E8F5E9","active":true,"stockStatus":"IN_STOCK"}];
 export const mockCustomers: Customer[] = [];
 export const mockDeliveryPartners: DeliveryPartner[] = [];
 export const mockOrders: Order[] = [];

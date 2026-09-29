@@ -474,11 +474,12 @@ export default function CustomerChatScreen() {
             />
           </View>
         )}
-        <View style={{ flex: 1, alignItems: isBot ? 'flex-start' : 'flex-end' }}>
+        <View style={{ flex: 1 }}>
           {item.text ? (
             <View style={[
               styles.messageBubble, 
-              isBot ? styles.bubbleBot : styles.bubbleUser
+              isBot ? styles.bubbleBot : styles.bubbleUser,
+              { alignSelf: isBot ? 'flex-start' : 'flex-end' }
             ]}>
               <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
                 {item.text}
@@ -730,6 +731,7 @@ export default function CustomerChatScreen() {
       <FlatList
         ref={flatListRef}
         data={chatMessages}
+        extraData={{ products, activeOrder, chatState }}
         keyExtractor={item => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.chatList}
