@@ -946,16 +946,27 @@ export const useStore = create<AppState>()(
     {
       name: 'releaf-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({
-        appStoreType: state.appStoreType,
-        cart: state.cart,
-        chatMessages: state.chatMessages,
-        chatState: state.chatState,
-        currentCustomer: state.currentCustomer,
-        currentAddress: state.currentAddress,
-        appliedCoupon: state.appliedCoupon,
-        tempCustomer: state.tempCustomer
-      }),
+      partialize: (state) => {
+        // Strip out base64 images from the cart to avoid exceeding the 5MB LocalStorage limit on Web
+        const sanitizedCart = state.cart.map(item => {
+          const product = { ...item.product };
+          if (product.image && product.image.length > 5000) {
+            delete product.image;
+          }
+          return { ...item, product };
+        });
+
+        return {
+          appStoreType: state.appStoreType,
+          cart: sanitizedCart,
+          chatMessages: state.chatMessages,
+          chatState: state.chatState,
+          currentCustomer: state.currentCustomer,
+          currentAddress: state.currentAddress,
+          appliedCoupon: state.appliedCoupon,
+          tempCustomer: state.tempCustomer
+        };
+      },
     }
   )
 );
