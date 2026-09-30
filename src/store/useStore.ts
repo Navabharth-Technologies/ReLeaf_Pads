@@ -950,9 +950,8 @@ export const useStore = create<AppState>()(
         // Strip out base64 images from the cart to avoid exceeding the 5MB LocalStorage limit on Web
         const sanitizedCart = state.cart.map(item => {
           const product = { ...item.product };
-          if (product.image && product.image.length > 5000) {
-            delete product.image;
-          }
+          delete product.imageUrl;
+          delete product.imageFallback;
           return { ...item, product };
         });
 
