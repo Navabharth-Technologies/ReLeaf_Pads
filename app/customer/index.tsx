@@ -756,6 +756,7 @@ export default function CustomerChatScreen() {
 
       <View style={styles.inputContainer}>
         <TextInput
+          key={['CHECKING_PINCODE', 'COLLECTING_CUSTOMER_DETAILS'].includes(chatState) ? 'number' : 'text'}
           style={styles.input}
           placeholder="Message ReLeaf Pads..."
           value={inputText}
