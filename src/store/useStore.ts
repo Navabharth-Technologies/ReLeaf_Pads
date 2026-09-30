@@ -9,6 +9,9 @@ import {
 import { mockProducts, mockCustomers, mockDeliveryPartners, mockOrders, mockCoupons, SERVICEABLE_PINCODES } from './mockData';
 
 interface AppState {
+  appStoreType: 'PADS' | 'DIAPERS';
+  setAppStoreType: (type: 'PADS' | 'DIAPERS') => void;
+
   // Data
   products: Product[];
   customers: Customer[];
@@ -79,9 +82,19 @@ const generateOrderId = (orders: any[]) => {
   return `#RL${dateStr}-${randomSuffix}`;
 };
 
+export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
+  if (storeType === 'DIAPERS') {
+    // This will be replaced once Diapers backend URL is provided
+    return 'https://diapers-backend.trycloudflare.com';
+  }
+  return getApiUrl(get().appStoreType) + '';
+};
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
+      appStoreType: 'PADS',
+      setAppStoreType: (type) => set({ appStoreType: type }),
       products: mockProducts,
       customers: mockCustomers,
       orders: mockOrders,
@@ -116,7 +129,7 @@ export const useStore = create<AppState>()(
           products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
         }));
         try {
-          await fetch(`https://contained-produced-rules-perspective.trycloudflare.com/api/products/${productId}/image`, {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/image`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageUrl })
@@ -344,8 +357,8 @@ export const useStore = create<AppState>()(
         
         // POST to SQL Database
         try {
-          const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
-          const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
+          const localUrl = getApiUrl(get().appStoreType) + '';
+          const API_URL = __DEV__ ? localUrl : getApiUrl(get().appStoreType) + '';
           const response = await fetch(`${API_URL}/api/orders/full`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -449,7 +462,7 @@ export const useStore = create<AppState>()(
         if (!order) return;
 
         // POST to SQL Database
-        fetch(`https://contained-produced-rules-perspective.trycloudflare.com/api/orders/${encodeURIComponent(orderId)}/status`, {
+        fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
@@ -573,7 +586,7 @@ export const useStore = create<AppState>()(
         const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
         
         // POST to SQL Database
-        fetch(`https://contained-produced-rules-perspective.trycloudflare.com/api/orders/${encodeURIComponent(orderId)}/status`, {
+        fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'ASSIGNED', deliveryPartnerId: partnerId })
@@ -670,7 +683,7 @@ export const useStore = create<AppState>()(
         };
         
         // POST to SQL Database
-        fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/customers', {
+        fetch(getApiUrl(get().appStoreType) + '/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCustomer)
@@ -678,7 +691,7 @@ export const useStore = create<AppState>()(
         .then(() => {
           if (newCustomer.addresses.length > 0) {
             newCustomer.addresses.forEach(addr => {
-              fetch(`https://contained-produced-rules-perspective.trycloudflare.com/api/customers/${id}/addresses`, {
+              fetch(`${getApiUrl(get().appStoreType)}/api/customers/${id}/addresses`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(addr)
@@ -696,7 +709,7 @@ export const useStore = create<AppState>()(
       },
       
       addAddressToCustomer: (customerId, address) => {
-        fetch(`https://contained-produced-rules-perspective.trycloudflare.com/api/customers/${customerId}/addresses`, {
+        fetch(`${getApiUrl(get().appStoreType)}/api/customers/${customerId}/addresses`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(address)
@@ -764,7 +777,7 @@ export const useStore = create<AppState>()(
       addDeliveryPartner: async (name, phone) => {
         try {
           // POST to SQL Database
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/delivery-partners', {
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/delivery-partners', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone })
@@ -794,7 +807,7 @@ export const useStore = create<AppState>()(
 
       fetchDeliveryPartners: async () => {
         try {
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/delivery-partners');
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/delivery-partners');
           const data = await response.json();
           // Map DB schema to frontend schema
           const mappedPartners = data.map((dp: any) => ({
@@ -812,7 +825,7 @@ export const useStore = create<AppState>()(
 
       fetchCustomers: async () => {
         try {
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/customers');
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/customers');
           const data = await response.json();
           set({ customers: data });
         } catch (error) {
@@ -822,7 +835,7 @@ export const useStore = create<AppState>()(
 
       fetchOrders: async () => {
         try {
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/orders');
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/orders');
           const data = await response.json();
           set({ orders: data });
         } catch (error) {
@@ -832,7 +845,7 @@ export const useStore = create<AppState>()(
       
       fetchCoupons: async () => {
         try {
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/coupons');
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/coupons');
           const data = await response.json();
           set({ coupons: data });
         } catch (error) {
@@ -882,7 +895,7 @@ export const useStore = create<AppState>()(
         };
 
         // POST to SQL Database
-        fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/coupons', {
+        fetch(getApiUrl(get().appStoreType) + '/api/coupons', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCoupon)
@@ -896,7 +909,7 @@ export const useStore = create<AppState>()(
       fetchProducts: async () => {
         try {
           // You may need to change localhost to your PC's IP if running on an Android emulator or physical device.
-          const response = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/products', {
+          const response = await fetch(getApiUrl(get().appStoreType) + '/api/products', {
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
@@ -931,6 +944,7 @@ export const useStore = create<AppState>()(
       name: 'releaf-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
+        appStoreType: state.appStoreType,
         cart: state.cart,
         chatMessages: state.chatMessages,
         chatState: state.chatState,

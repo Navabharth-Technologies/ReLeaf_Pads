@@ -40,7 +40,10 @@ export interface Customer {
   addresses: Address[];
 }
 
+export type AppStoreType = 'PADS' | 'DIAPERS';
+
 export interface StoreState {
+  appStoreType: AppStoreType;
   products: Product[];
   customers: Customer[];
   orders: Order[];
@@ -58,6 +61,7 @@ export interface StoreState {
   tempCustomer?: { phone?: string; name?: string };
 
   // Actions
+  setAppStoreType: (type: AppStoreType) => void;
   toggleProductStock: (productId: string) => void;
   toggleProductActive: (productId: string) => void;
   updateProductStock: (productId: string, change: number) => void;

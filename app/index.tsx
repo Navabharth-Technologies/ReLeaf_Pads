@@ -1,57 +1,45 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { useStore } from '../src/store/useStore';
 
-export default function RoleSelectionScreen() {
+export default function StoreSelectionScreen() {
   const router = useRouter();
-  const { resetDemo } = useStore();
+  const { setAppStoreType } = useStore();
 
-  useEffect(() => {
-    // Initialization or analytics can go here
-  }, []);
+  const handleSelectStore = (storeType: 'PADS' | 'DIAPERS') => {
+    setAppStoreType(storeType);
+    router.push('/roles');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Image 
-              source={require('../assets/logo.png')} 
-              style={{ width: 180, height: 180 }} 
-              resizeMode="contain"
-            />
-          </View>
+          <Image 
+            source={require('../assets/logo.png')} 
+            style={{ width: 150, height: 150, marginBottom: 20 }} 
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Welcome to ReLeaf</Text>
+          <Text style={styles.subtitle}>Please select a store to continue</Text>
         </View>
         
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.buttonPrimary} 
-            onPress={() => {
-              router.push('/customer');
-            }}
+            style={[styles.buttonPrimary, { backgroundColor: '#8A7BB4' }]} 
+            onPress={() => handleSelectStore('PADS')}
           >
-            <Text style={styles.buttonTextPrimary}>Continue as Customer</Text>
+            <Text style={styles.buttonTextPrimary}>ReLeaf Pads</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.buttonPrimary} 
-            onPress={() => {
-              router.push('/owner-login');
-            }}
+            style={[styles.buttonPrimary, { backgroundColor: '#5D9CEC' }]} 
+            onPress={() => handleSelectStore('DIAPERS')}
           >
-            <Text style={styles.buttonTextPrimary}>Continue as Owner</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.buttonPrimary} 
-            onPress={() => {
-              router.push('/delivery/login');
-            }}
-          >
-            <Text style={styles.buttonTextPrimary}>Continue as Delivery Partner</Text>
+            <Text style={styles.buttonTextPrimary}>ReLeaf Diapers</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -60,56 +48,21 @@ export default function RoleSelectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.darkPurple,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.mutedText,
-    fontStyle: 'italic',
-  },
-  buttonContainer: {
-    width: '100%',
-    maxWidth: 400,
-    gap: 16,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' },
+  header: { alignItems: 'center', marginBottom: 40 },
+  title: { fontSize: 26, fontWeight: '700', color: colors.darkPurple, marginBottom: 8 },
+  subtitle: { fontSize: 16, color: colors.mutedText },
+  buttonContainer: { width: '100%', maxWidth: 400, gap: 20 },
   buttonPrimary: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
+    paddingVertical: 20,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
-  buttonTextPrimary: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  }
+  buttonTextPrimary: { color: colors.white, fontSize: 18, fontWeight: '700' }
 });
