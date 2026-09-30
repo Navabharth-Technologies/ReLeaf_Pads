@@ -17,7 +17,8 @@ export default function CustomerChatScreen() {
     customers, currentCustomer, setCurrentCustomer,
     currentAddress, setCurrentAddress, saveNewCustomer, createOrder, markOrderAsPaid,
     orders, deliveryPartners,
-    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal
+    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal,
+    appStoreType
   } = useStore();
 
   const [inputText, setInputText] = useState('');
@@ -468,7 +469,7 @@ export default function CustomerChatScreen() {
         {isBot && (
           <View style={styles.botAvatar}>
             <Image
-              source={require('../../assets/logo.png')}
+              source={appStoreType === 'DIAPERS' ? require('../../assets/nappee_logo.png') : require('../../assets/logo.png')}
               style={{ width: 24, height: 24 }}
               resizeMode="contain"
             />

@@ -39,7 +39,7 @@ export default function StoreSelectionScreen() {
             style={[styles.buttonPrimary, { backgroundColor: '#5D9CEC' }]} 
             onPress={() => handleSelectStore('DIAPERS')}
           >
-            <Text style={styles.buttonTextPrimary}>ReLeaf Diapers</Text>
+            <Text style={styles.buttonTextPrimary}>Nappee Diapers</Text>
           </TouchableOpacity>
         </View>
       </View>

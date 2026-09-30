@@ -7,6 +7,7 @@ import { useStore } from '../src/store/useStore';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
+  const { appStoreType } = useStore();
   const { resetDemo } = useStore();
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function RoleSelectionScreen() {
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Image 
-              source={require('../assets/logo.png')} 
+              source={appStoreType === 'DIAPERS' ? require('../assets/nappee_logo.png') : require('../assets/logo.png')} 
               style={{ width: 180, height: 180 }} 
               resizeMode="contain"
             />

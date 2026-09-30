@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react-native';
 
 export default function OwnerLoginScreen() {
   const router = useRouter();
+  const { appStoreType } = useStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,7 @@ export default function OwnerLoginScreen() {
         <View style={styles.card}>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../assets/logo.png')} 
+              source={appStoreType === 'DIAPERS' ? require('../assets/nappee_logo.png') : require('../assets/logo.png')} 
               style={{ width: 120, height: 120 }} 
               resizeMode="contain"
             />
