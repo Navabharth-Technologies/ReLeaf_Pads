@@ -115,7 +115,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch('https://marc-computers-tourist-surprise.trycloudflare.com/api/customers');
+          const res = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/customers');
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
@@ -246,8 +246,8 @@ export default function CustomerChatScreen() {
         }
       } else {
         // AI Fallback Integration
-        const localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
-        const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
+        const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
+        const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {
@@ -305,8 +305,8 @@ export default function CustomerChatScreen() {
       
       // 2. Fetch Razorpay Order ID from Backend
       const { Platform } = require('react-native');
-      const localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
-      const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
+      const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
+      const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
