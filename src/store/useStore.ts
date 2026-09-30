@@ -87,7 +87,7 @@ export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
     // This will be replaced once Diapers backend URL is provided
     return 'https://diapers-backend.trycloudflare.com';
   }
-  return getApiUrl(get().appStoreType) + '';
+  return 'https://contained-produced-rules-perspective.trycloudflare.com';
 };
 
 export const useStore = create<AppState>()(
