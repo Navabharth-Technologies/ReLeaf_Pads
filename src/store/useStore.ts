@@ -930,6 +930,15 @@ export const useStore = create<AppState>()(
     {
       name: 'releaf-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        cart: state.cart,
+        chatMessages: state.chatMessages,
+        chatState: state.chatState,
+        currentCustomer: state.currentCustomer,
+        currentAddress: state.currentAddress,
+        appliedCoupon: state.appliedCoupon,
+        tempCustomer: state.tempCustomer
+      }),
     }
   )
 );
