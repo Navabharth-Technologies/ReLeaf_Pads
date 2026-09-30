@@ -708,7 +708,7 @@ export default function CustomerChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}>
 
       {activeOrder && (
         <TouchableOpacity style={styles.activeOrderCard} onPress={() => router.push(`/customer/tracking`)}>
