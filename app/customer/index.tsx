@@ -756,13 +756,12 @@ export default function CustomerChatScreen() {
 
       <View style={styles.inputContainer}>
         <TextInput
-          key={['CHECKING_PINCODE', 'COLLECTING_CUSTOMER_DETAILS'].includes(chatState) ? 'number' : 'text'}
           style={styles.input}
           placeholder="Message ReLeaf Pads..."
           value={inputText}
           onChangeText={handleTextChange}
           onSubmitEditing={handleSend}
-          keyboardType={['CHECKING_PINCODE', 'COLLECTING_CUSTOMER_DETAILS'].includes(chatState) ? 'number-pad' : 'default'}
+          keyboardType="default"
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <Send size={20} color={colors.white} />
