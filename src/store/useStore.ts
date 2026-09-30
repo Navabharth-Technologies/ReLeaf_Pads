@@ -83,6 +83,9 @@ const generateOrderId = (orders: any[]) => {
 };
 
 export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:5001';
+  }
   if (storeType === 'DIAPERS') {
     // This will be replaced once Diapers backend URL is provided
     return 'https://diapers-backend.trycloudflare.com';

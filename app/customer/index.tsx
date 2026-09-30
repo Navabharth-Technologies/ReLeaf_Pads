@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
-import { useStore } from '../../src/store/useStore';
+import { useStore, getApiUrl } from '../../src/store/useStore';
 import { Send, Truck, ChevronRight } from 'lucide-react-native';
 import { ChatMessage, Customer, Address } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
@@ -246,8 +246,8 @@ export default function CustomerChatScreen() {
         }
       } else {
         // AI Fallback Integration
-        const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
-        const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
+        const { appStoreType } = useStore.getState();
+        const API_URL = getApiUrl(appStoreType);
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {

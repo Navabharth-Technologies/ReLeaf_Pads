@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
+import { useStore, getApiUrl } from '../src/store/useStore';
 import { ArrowLeft } from 'lucide-react-native';
 
 export default function OwnerLoginScreen() {
@@ -19,12 +20,8 @@ export default function OwnerLoginScreen() {
     
     setLoading(true);
     try {
-      let localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
-      if (Platform.OS === 'web') {
-        localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
-      }
-      
-      const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
+      const { appStoreType } = useStore.getState();
+      const API_URL = getApiUrl(appStoreType);
       
       const response = await fetch(`${API_URL}/api/owner/login`, {
         method: 'POST',
