@@ -84,7 +84,7 @@ const generateOrderId = (orders: any[]) => {
 
 export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
   if (Platform.OS === 'web') {
-    return 'http://localhost:5001';
+    return 'http://127.0.0.1:5001';
   }
   if (storeType === 'DIAPERS') {
     // This will be replaced once Diapers backend URL is provided
@@ -950,9 +950,8 @@ export const useStore = create<AppState>()(
         // Strip out base64 images from the cart to avoid exceeding the 5MB LocalStorage limit on Web
         const sanitizedCart = state.cart.map(item => {
           const product = { ...item.product };
-          if (product.image && product.image.length > 5000) {
-            delete product.image;
-          }
+          delete product.imageUrl;
+          delete product.imageFallback;
           return { ...item, product };
         });
 
