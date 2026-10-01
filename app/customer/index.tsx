@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
-import { useStore, getApiUrl } from '../../src/store/useStore';
+import { useStore } from '../../src/store/useStore';
 import { Send, Truck, ChevronRight } from 'lucide-react-native';
 import { ChatMessage, Customer, Address } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
@@ -17,8 +17,7 @@ export default function CustomerChatScreen() {
     customers, currentCustomer, setCurrentCustomer,
     currentAddress, setCurrentAddress, saveNewCustomer, createOrder, markOrderAsPaid,
     orders, deliveryPartners,
-    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal,
-    appStoreType
+    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal
   } = useStore();
 
   const [inputText, setInputText] = useState('');
@@ -98,9 +97,9 @@ export default function CustomerChatScreen() {
       } else {
         addChatMessage({
           sender: 'bot',
-          text: "We're sorry! 💚\n\nAt the moment, ReLeaf offers direct delivery only within Mysore.\n\nWe're working towards expanding our delivery coverage.\n\nYou can still explore our complete range and place your order through our official website.",
+          text: "We're sorry! 💚\n\nAt the moment, ReLeaf Pads offers direct delivery only within Mysore.\n\nWe're working towards expanding our delivery coverage.\n\nYou can still explore our complete range and place your order through our official website.",
           type: 'link',
-          linkText: 'Visit ReLeafWebsite',
+          linkText: 'Visit ReLeaf Website',
           linkUrl: 'https://www.releafpads.in/'
         });
         setChatState('WELCOME');
@@ -191,14 +190,14 @@ export default function CustomerChatScreen() {
     if (lowerText.includes('hi') || lowerText.includes('hello')) {
       addChatMessage({
         sender: 'bot',
-        text: 'Hello! 👋 Welcome to ReLeaf. How can we help you today?',
+        text: 'Hello! 👋 Welcome to ReLeaf Pads. How can we help you today?',
         type: 'text'
       });
       setChatState('WELCOME');
     } else if (lowerText.includes('product') || lowerText.includes('shop') || lowerText.includes('buy')) {
       addChatMessage({
         sender: 'bot',
-        text: 'Here are our available ReLeafCotton Sanitary Pad packs:',
+        text: 'Here are our available ReLeaf Cotton Sanitary Pad packs:',
         type: 'products'
       });
       setChatState('BROWSING_PRODUCTS');
@@ -247,8 +246,8 @@ export default function CustomerChatScreen() {
         }
       } else {
         // AI Fallback Integration
-        const { appStoreType } = useStore.getState();
-        const API_URL = getApiUrl(appStoreType);
+        const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
+        const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {
@@ -322,12 +321,12 @@ export default function CustomerChatScreen() {
       
       // 3. Configure Razorpay Checkout
       const options = {
-        description: 'ReLeafSanitary Pads Order',
+        description: 'ReLeaf Sanitary Pads Order',
         image: 'https://releaf-pads.com/logo.png', // Optional branding
         currency: data.currency,
         key: data.keyId,
         amount: data.amount,
-        name: 'ReLeaf',
+        name: 'ReLeaf Pads',
         order_id: data.razorpayOrderId,
         prefill: {
           email: 'customer@releafpads.com',
@@ -375,7 +374,7 @@ export default function CustomerChatScreen() {
                 markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
                 addChatMessage({
                   sender: 'bot',
-                  text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+                  text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
                   type: 'text'
                 });
                 setChatState('ORDER_CONFIRMED');
@@ -430,7 +429,7 @@ export default function CustomerChatScreen() {
             
             addChatMessage({
               sender: 'bot',
-              text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+              text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
               type: 'text'
             });
             setChatState('ORDER_CONFIRMED');
@@ -469,7 +468,7 @@ export default function CustomerChatScreen() {
         {isBot && (
           <View style={styles.botAvatar}>
             <Image
-              source={appStoreType === 'DIAPERS' ? require('../../assets/nappee_logo.png') : require('../../assets/logo.png')}
+              source={require('../../assets/logo.png')}
               style={{ width: 24, height: 24 }}
               resizeMode="contain"
             />
@@ -758,7 +757,7 @@ export default function CustomerChatScreen() {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Message ReLeaf..."
+          placeholder="Message ReLeaf Pads..."
           value={inputText}
           onChangeText={handleTextChange}
           onSubmitEditing={handleSend}

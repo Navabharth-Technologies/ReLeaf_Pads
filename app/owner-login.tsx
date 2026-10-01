@@ -3,12 +3,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
-import { useStore, getApiUrl } from '../src/store/useStore';
 import { ArrowLeft } from 'lucide-react-native';
 
 export default function OwnerLoginScreen() {
   const router = useRouter();
-  const { appStoreType } = useStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,8 +19,12 @@ export default function OwnerLoginScreen() {
     
     setLoading(true);
     try {
-      const { appStoreType } = useStore.getState();
-      const API_URL = getApiUrl(appStoreType);
+      let localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
+      if (Platform.OS === 'web') {
+        localUrl = 'https://marc-computers-tourist-surprise.trycloudflare.com';
+      }
+      
+      const API_URL = __DEV__ ? localUrl : 'https://marc-computers-tourist-surprise.trycloudflare.com';
       
       const response = await fetch(`${API_URL}/api/owner/login`, {
         method: 'POST',
@@ -63,7 +65,7 @@ export default function OwnerLoginScreen() {
         <View style={styles.card}>
           <View style={styles.logoContainer}>
             <Image 
-              source={appStoreType === 'DIAPERS' ? require('../assets/nappee_logo.png') : require('../assets/logo.png')} 
+              source={require('../assets/logo.png')} 
               style={{ width: 120, height: 120 }} 
               resizeMode="contain"
             />
