@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
-import { useStore } from '../../src/store/useStore';
+import { useStore, getApiUrl } from '../../src/store/useStore';
 import { Send, Truck, ChevronRight } from 'lucide-react-native';
 import { ChatMessage, Customer, Address } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
@@ -115,7 +115,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch('https://contained-produced-rules-perspective.trycloudflare.com/api/customers');
+          const res = await fetch(`${getApiUrl('PADS')}/api/customers`);
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
@@ -246,8 +246,8 @@ export default function CustomerChatScreen() {
         }
       } else {
         // AI Fallback Integration
-        const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
-        const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
+        
+        const API_URL = getApiUrl('PADS');
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {
@@ -305,8 +305,8 @@ export default function CustomerChatScreen() {
       
       // 2. Fetch Razorpay Order ID from Backend
       const { Platform } = require('react-native');
-      const localUrl = 'https://contained-produced-rules-perspective.trycloudflare.com';
-      const API_URL = __DEV__ ? localUrl : 'https://contained-produced-rules-perspective.trycloudflare.com';
+      
+      const API_URL = getApiUrl('PADS');
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
