@@ -83,14 +83,7 @@ const generateOrderId = (orders: any[]) => {
 };
 
 export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
-  if (Platform.OS === 'web') {
-    return 'http://127.0.0.1:5001';
-  }
-  if (storeType === 'DIAPERS') {
-    // This will be replaced once Diapers backend URL is provided
-    return 'http://192.168.29.134:5002';
-  }
-  return 'http://192.168.29.134:5001';
+  return 'https://releafpadbackend-h0bwephqd3ctazgn.centralindia-01.azurewebsites.net';
 };
 
 export const useStore = create<AppState>()(
