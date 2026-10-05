@@ -8,6 +8,7 @@ export default function OwnerCouponsScreen() {
   const { coupons, orders, addCoupon, deleteCoupon } = useStore();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'LIST' | 'INFLUENCERS'>('OVERVIEW');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<string | null>(null);
   const [newCoupon, setNewCoupon] = useState({ code: '', discountValue: '', type: 'GENERAL' as any, influencerName: '', contactNumber: '' });
 
   const handleAddCoupon = () => {
@@ -143,18 +144,7 @@ export default function OwnerCouponsScreen() {
                 <Text style={[styles.statusText, { color: '#D93025' }]}>Inactive</Text>
               </View>
             )}
-            <TouchableOpacity onPress={() => {
-              if (Platform.OS === 'web') {
-                if (window.confirm('Are you sure you want to delete this coupon?')) {
-                  deleteCoupon(item.id);
-                }
-              } else {
-                Alert.alert('Delete Coupon', 'Are you sure you want to delete this coupon?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', style: 'destructive', onPress: () => deleteCoupon(item.id) }
-                ]);
-              }
-            }} style={{ marginLeft: 8 }}>
+            <TouchableOpacity onPress={() => setCouponToDelete(item.id)} style={{ marginLeft: 8 }}>
               <Trash2 size={20} color="#D93025" />
             </TouchableOpacity>
           </View>
@@ -312,6 +302,42 @@ export default function OwnerCouponsScreen() {
             <TouchableOpacity style={styles.saveBtn} onPress={handleAddCoupon}>
               <Text style={styles.saveBtnText}>Save Coupon</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal visible={!!couponToDelete} transparent animationType="fade">
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.modalContent, { width: '85%', maxWidth: 400, borderRadius: 20, padding: 24 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#FCE8E6', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                <Trash2 size={28} color="#D93025" />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: colors.darkPurple, marginBottom: 8 }}>Delete Coupon?</Text>
+              <Text style={{ fontSize: 15, color: colors.mutedText, textAlign: 'center', lineHeight: 22 }}>
+                Are you sure you want to permanently delete this coupon? This action cannot be undone.
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.background, alignItems: 'center' }}
+                onPress={() => setCouponToDelete(null)}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.mutedText }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#D93025', alignItems: 'center' }}
+                onPress={() => {
+                  if (couponToDelete) {
+                    deleteCoupon(couponToDelete);
+                    setCouponToDelete(null);
+                  }
+                }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFF' }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
