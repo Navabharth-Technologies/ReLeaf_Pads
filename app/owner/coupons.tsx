@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert, Platform } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Gift, TrendingUp, Users, Tag, Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react-native';
@@ -144,10 +144,16 @@ export default function OwnerCouponsScreen() {
               </View>
             )}
             <TouchableOpacity onPress={() => {
-              Alert.alert('Delete Coupon', 'Are you sure you want to delete this coupon?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => deleteCoupon(item.id) }
-              ]);
+              if (Platform.OS === 'web') {
+                if (window.confirm('Are you sure you want to delete this coupon?')) {
+                  deleteCoupon(item.id);
+                }
+              } else {
+                Alert.alert('Delete Coupon', 'Are you sure you want to delete this coupon?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: () => deleteCoupon(item.id) }
+                ]);
+              }
             }} style={{ marginLeft: 8 }}>
               <Trash2 size={20} color="#D93025" />
             </TouchableOpacity>
