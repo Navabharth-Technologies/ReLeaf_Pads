@@ -65,6 +65,7 @@ interface AppState {
   addAddressToCustomer: (customerId: string, address: Address) => void;
   
   addCoupon: (coupon: Partial<Coupon>) => void;
+  deleteCoupon: (id: string) => void;
   applyCoupon: (code: string) => { success: boolean; message: string };
   removeCoupon: () => void;
   getCartTotal: () => { subtotal: number; discountAmount: number; delivery: number; total: number };
@@ -901,6 +902,17 @@ export const useStore = create<AppState>()(
 
         set((state) => ({
           coupons: [...state.coupons, newCoupon]
+        }));
+      },
+      
+      deleteCoupon: (id) => {
+        fetch(`${getApiUrl(get().appStoreType)}/api/coupons/${id}`, {
+          method: 'DELETE'
+        }).catch(err => console.error('Failed to delete coupon from DB:', err));
+
+        set((state) => ({
+          coupons: state.coupons.filter(c => c.id !== id),
+          appliedCoupon: state.appliedCoupon?.id === id ? null : state.appliedCoupon
         }));
       },
 

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
-import { Gift, TrendingUp, Users, Tag, Plus, CheckCircle, XCircle } from 'lucide-react-native';
+import { Gift, TrendingUp, Users, Tag, Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react-native';
 
 export default function OwnerCouponsScreen() {
-  const { coupons, orders, addCoupon } = useStore();
+  const { coupons, orders, addCoupon, deleteCoupon } = useStore();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'LIST' | 'INFLUENCERS'>('OVERVIEW');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [newCoupon, setNewCoupon] = useState({ code: '', discountValue: '', type: 'GENERAL' as any, influencerName: '', contactNumber: '' });
@@ -143,6 +143,14 @@ export default function OwnerCouponsScreen() {
                 <Text style={[styles.statusText, { color: '#D93025' }]}>Inactive</Text>
               </View>
             )}
+            <TouchableOpacity onPress={() => {
+              Alert.alert('Delete Coupon', 'Are you sure you want to delete this coupon?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => deleteCoupon(item.id) }
+              ]);
+            }} style={{ marginLeft: 8 }}>
+              <Trash2 size={20} color="#D93025" />
+            </TouchableOpacity>
           </View>
           <View style={styles.listDetails}>
             <Text style={styles.listDetailText}>Type: {item.type.replace('_', ' ')}</Text>
