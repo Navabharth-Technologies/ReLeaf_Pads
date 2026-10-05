@@ -59,22 +59,22 @@ export default function OwnerCouponsScreen() {
 
   // Computed metrics
   const activeCouponsCount = coupons.filter(c => c.active).length;
-  const totalUses = coupons.reduce((sum, c) => sum + c.usedCount, 0);
+  const totalUses = coupons.reduce((sum, c) => sum + (Number(c.usedCount) || 0), 0);
   
   const couponOrders = orders.filter(o => o.couponId && o.status !== 'CANCELLED');
-  const totalCouponRevenue = couponOrders.reduce((sum, o) => sum + o.total, 0);
-  const totalDiscountGiven = couponOrders.reduce((sum, o) => sum + (o.discountAmount || 0), 0);
+  const totalCouponRevenue = couponOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const totalDiscountGiven = couponOrders.reduce((sum, o) => sum + (Number(o.discountAmount) || 0), 0);
 
   // Influencer stats
   const influencers = coupons.filter(c => c.type === 'INFLUENCER').map(c => {
     const influencerOrders = couponOrders.filter(o => o.couponId === c.id);
-    const revenue = influencerOrders.reduce((sum, o) => sum + o.total, 0);
-    const discount = influencerOrders.reduce((sum, o) => sum + (o.discountAmount || 0), 0);
+    const revenue = influencerOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const discount = influencerOrders.reduce((sum, o) => sum + (Number(o.discountAmount) || 0), 0);
     return {
       id: c.influencerId || c.id,
       name: c.influencerName || 'Unknown',
       code: c.code,
-      uses: c.usedCount,
+      uses: Number(c.usedCount) || 0,
       orders: influencerOrders.length,
       revenue,
       discount
