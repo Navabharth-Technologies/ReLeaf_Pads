@@ -241,13 +241,15 @@ export const useStore = create<AppState>()(
         
         if (state.appliedCoupon) {
           const c = state.appliedCoupon;
+          const discountVal = Number(c.discountValue) || 0;
           if (c.discountType === 'PERCENTAGE') {
-            discountAmount = subtotal * (c.discountValue / 100);
-            if (c.maximumDiscount && discountAmount > c.maximumDiscount) {
-              discountAmount = c.maximumDiscount;
+            discountAmount = subtotal * (discountVal / 100);
+            const maxDiscount = Number(c.maximumDiscount) || 0;
+            if (c.maximumDiscount && discountAmount > maxDiscount) {
+              discountAmount = maxDiscount;
             }
           } else {
-            discountAmount = c.discountValue;
+            discountAmount = discountVal;
           }
           
           if (discountAmount > subtotal) {
