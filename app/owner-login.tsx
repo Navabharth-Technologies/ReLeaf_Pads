@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { getApiUrl } from '../src/store/useStore';
 
 export default function OwnerLoginScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -83,14 +84,22 @@ export default function OwnerLoginScreen() {
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Password</Text>
-            <TextInput 
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter password"
-              secureTextEntry
-              placeholderTextColor="#9ca3af"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput 
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter password"
+                secureTextEntry={!showPassword}
+                placeholderTextColor="#9ca3af"
+              />
+              <TouchableOpacity 
+                style={styles.eyeIcon} 
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff color="#9ca3af" size={20} /> : <Eye color="#9ca3af" size={20} />}
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity 
@@ -178,6 +187,23 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#1F2937',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  eyeIcon: {
+    padding: 16,
   },
   button: {
     backgroundColor: colors.primary,
