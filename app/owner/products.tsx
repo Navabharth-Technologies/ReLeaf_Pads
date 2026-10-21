@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity, Modal, TextInput, Image, RefreshControl } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Plus, Minus, ArrowLeft, ImagePlus } from 'lucide-react-native';
@@ -9,12 +9,23 @@ import { Product } from '../../src/store/types';
 
 export default function OwnerProductsScreen() {
   const router = useRouter();
-  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct, updateProductImage } = useStore();
+  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct, updateProductImage, fetchProducts } = useStore();
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
   const [stock, setStock] = React.useState('');
   const [imageUri, setImageUri] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchProducts();
+    setRefreshing(false);
+  }, [fetchProducts]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -139,6 +150,9 @@ export default function OwnerProductsScreen() {
         keyExtractor={item => item.id}
         renderItem={renderProduct}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       />
 
       <Modal visible={modalVisible} transparent animationType="slide">

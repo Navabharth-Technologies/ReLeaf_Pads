@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Order } from '../../src/store/types';
@@ -7,13 +7,29 @@ import { useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 
 export default function OwnerOrdersScreen() {
-  const { orders, customers } = useStore();
+  const { orders, customers, fetchOrders } = useStore();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchOrders();
+    setRefreshing(false);
+  }, [fetchOrders]);
 
   const filteredOrders = orders.filter(o => 
-    o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    customers.find(c => c.id === o.customerId)?.name.toLowerCase().includes(searchQuery.toLowerCase())
+    o.paymentStatus === 'PAID' &&
+    (o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    customers.find(c => c.id === o.customerId)?.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const getStatusColor = (status: string) => {
@@ -82,6 +98,9 @@ export default function OwnerOrdersScreen() {
         renderItem={renderOrder}
         contentContainerStyle={styles.list}
         ListEmptyComponent={<Text style={styles.emptyText}>No orders found.</Text>}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       />
     </View>
   );

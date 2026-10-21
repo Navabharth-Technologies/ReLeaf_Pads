@@ -115,12 +115,37 @@ export const useStore = create<AppState>()(
       ],
       chatState: 'WELCOME',
       
-      toggleProductStock: (productId) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, stock: p.stock > 0 ? 0 : 50, stockStatus: p.stock > 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' } : p)
-      })),
-      toggleProductActive: (productId) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, active: !p.active } : p)
-      })),
+      toggleProductStock: (productId) => set((state) => {
+        const product = state.products.find(p => p.id === productId);
+        if (!product) return state;
+        const newStock = product.stock > 0 ? 0 : 50;
+        const newStatus: 'IN_STOCK' | 'OUT_OF_STOCK' = newStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK';
+
+        fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/stock`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
+        }).catch(err => console.error('Failed to sync stock to DB:', err));
+
+        return {
+          products: state.products.map(p => p.id === productId ? { ...p, stock: newStock, stockStatus: newStatus } : p)
+        };
+      }),
+      toggleProductActive: (productId) => set((state) => {
+        const product = state.products.find(p => p.id === productId);
+        if (!product) return state;
+        const newActive = !product.active;
+
+        fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/active`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: newActive })
+        }).catch(err => console.error('Failed to sync active status to DB:', err));
+
+        return {
+          products: state.products.map(p => p.id === productId ? { ...p, active: newActive } : p)
+        };
+      }),
       updateProductImage: async (productId, imageUrl) => {
         set((state) => ({
           products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
@@ -137,14 +162,22 @@ export const useStore = create<AppState>()(
       },
 
       updateProductStock: (productId, change) => set((state) => {
+        const product = state.products.find(p => p.id === productId);
+        if (!product) return state;
+        const newStock = Math.max(0, product.stock + change);
+        let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
+        if (newStock === 0) newStatus = 'OUT_OF_STOCK';
+        else if (newStock <= 10) newStatus = 'LOW_STOCK';
+
+        fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/stock`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
+        }).catch(err => console.error('Failed to sync stock to DB:', err));
+
         return {
           products: state.products.map(p => {
             if (p.id === productId) {
-              const newStock = Math.max(0, p.stock + change);
-              let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
-              if (newStock === 0) newStatus = 'OUT_OF_STOCK';
-              else if (newStock <= 10) newStatus = 'LOW_STOCK';
-              
               return { ...p, stock: newStock, stockStatus: newStatus };
             }
             return p;
