@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '../../../src/theme/colors';
 import { useStore } from '../../../src/store/useStore';
-import { MapPin, Phone, User, Package, Check, ArrowRight, Navigation } from 'lucide-react-native';
+import { MapPin, Phone, User, Package, Check, ArrowRight, ArrowLeft, Navigation } from 'lucide-react-native';
 import Map from '../../../src/components/Map';
 
 export default function DeliveryOrderDetail() {
@@ -19,6 +19,18 @@ export default function DeliveryOrderDetail() {
   const customer = customers.find(c => c.id === order.customerId);
   const address = order.deliveryAddress || customer?.addresses.find(a => a.id === order.addressId);
 
+  // Active queue for this partner in FIFO assignment order
+  const partnerQueue = orders
+    .filter(o => o.deliveryPartnerId === currentDeliveryPartner.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY'))
+    .sort((a, b) => {
+      const aTime = a.assignedAt || a.trackingEvents?.find(e => e.status === 'ASSIGNED')?.timestamp || a.date;
+      const bTime = b.assignedAt || b.trackingEvents?.find(e => e.status === 'ASSIGNED')?.timestamp || b.date;
+      return new Date(aTime).getTime() - new Date(bTime).getTime();
+    });
+
+  const currentQueueIndex = partnerQueue.findIndex(o => o.id === order.id);
+  const queuePositionText = currentQueueIndex !== -1 ? `Delivery ${currentQueueIndex + 1} of ${partnerQueue.length}` : null;
+
   const handleUpdateStatus = (newStatus: 'OUT_FOR_DELIVERY' | 'DELIVERED') => {
     setIsProcessing(true);
     // Simulate network delay for demo
@@ -27,9 +39,34 @@ export default function DeliveryOrderDetail() {
       setIsProcessing(false);
       
       if (newStatus === 'DELIVERED') {
-        Alert.alert('Success', 'Order delivered successfully!', [
-          { text: 'OK', onPress: () => router.replace('/delivery') }
-        ]);
+        const remainingQueue = partnerQueue.filter(o => o.id !== order.id);
+
+        if (remainingQueue.length > 0) {
+          const nextOrder = remainingQueue[0];
+          Alert.alert(
+            'Order Delivered! 🎉',
+            `Order ${order.id} is marked as delivered.\n\nNext in Queue: Order ${nextOrder.id} (${remainingQueue.length} order${remainingQueue.length > 1 ? 's' : ''} remaining).\n\nProceeding to the next delivery now.`,
+            [
+              {
+                text: 'Proceed to Next Order',
+                onPress: () => router.replace(`/delivery/order/${nextOrder.id.replace('#', '')}`)
+              }
+            ],
+            { cancelable: false }
+          );
+        } else {
+          Alert.alert(
+            'All Deliveries Completed! 🌟',
+            `Order ${order.id} marked as delivered.\n\nYou have completed all active deliveries assigned to you!`,
+            [
+              {
+                text: 'View Dashboard',
+                onPress: () => router.replace('/delivery')
+              }
+            ],
+            { cancelable: false }
+          );
+        }
       }
     }, 1000);
   };
@@ -37,12 +74,22 @@ export default function DeliveryOrderDetail() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.replace('/delivery')} style={styles.backBtn}>
+          <ArrowLeft size={22} color={colors.text} />
+        </TouchableOpacity>
         <View style={styles.headerLeft}>
-          <Text style={styles.orderId}>{order.id}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={styles.orderId}>{order.id}</Text>
+            {queuePositionText && (
+              <View style={styles.queueBadge}>
+                <Text style={styles.queueBadgeText}>{queuePositionText}</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.orderDate}>{new Date(order.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: order.status === 'OUT_FOR_DELIVERY' ? colors.primary + '20' : colors.warning + '20' }]}>
-          <Text style={[styles.statusText, { color: order.status === 'OUT_FOR_DELIVERY' ? colors.primary : colors.warning }]}>
+        <View style={[styles.statusBadge, { backgroundColor: order.status === 'OUT_FOR_DELIVERY' ? '#FEF3C7' : colors.softPurple }]}>
+          <Text style={[styles.statusText, { color: order.status === 'OUT_FOR_DELIVERY' ? '#B45309' : colors.primary }]}>
             {order.status === 'OUT_FOR_DELIVERY' ? 'Out for Delivery' : 'Assigned'}
           </Text>
         </View>
@@ -199,6 +246,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    gap: 12,
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  queueBadge: {
+    backgroundColor: colors.softPurple,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  queueBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
   },
   headerLeft: {
     flex: 1,

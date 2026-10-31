@@ -7,7 +7,7 @@ import { Package, User, LogOut, CheckCircle, Navigation, MapPin } from 'lucide-r
 
 export default function DeliveryDashboard() {
   const router = useRouter();
-  const { currentDeliveryPartner, logoutDeliveryPartner, togglePartnerStatus, orders, customers } = useStore();
+  const { currentDeliveryPartner, logoutDeliveryPartner, orders, customers } = useStore();
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'COMPLETED'>('ACTIVE');
 
   useEffect(() => {
@@ -19,51 +19,56 @@ export default function DeliveryDashboard() {
   if (!currentDeliveryPartner) return null;
 
   // Active deliveries: orders assigned to this partner that are either ASSIGNED or OUT_FOR_DELIVERY
-  const activeOrders = orders.filter(
-    o => o.deliveryPartnerId === currentDeliveryPartner.id && 
-         (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
-  );
+  const partnerOrders = orders.filter(o => o.deliveryPartnerId === currentDeliveryPartner.id);
 
-  const completedOrders = orders.filter(
-    o => o.deliveryPartnerId === currentDeliveryPartner.id && 
-         o.status === 'DELIVERED'
-  );
+  // Active orders sorted strictly in the sequence the owner assigned them (FIFO)
+  const activeOrders = partnerOrders
+    .filter(o => o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
+    .sort((a, b) => {
+      const aTime = a.assignedAt || a.trackingEvents?.find(e => e.status === 'ASSIGNED')?.timestamp || a.date;
+      const bTime = b.assignedAt || b.trackingEvents?.find(e => e.status === 'ASSIGNED')?.timestamp || b.date;
+      return new Date(aTime).getTime() - new Date(bTime).getTime();
+    });
 
-  const completedOrdersCount = currentDeliveryPartner.completedOrders || 0;
+  const completedOrders = partnerOrders
+    .filter(o => o.status === 'DELIVERED')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const completedOrdersCount = completedOrders.length;
   
   const handleLogout = () => {
     logoutDeliveryPartner();
     router.replace('/delivery/login');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE': return colors.primary;
-      case 'ON_DELIVERY': return '#F59E0B';
-      case 'ASSIGNED': return '#F59E0B';
-      case 'OFFLINE': return colors.mutedText;
-      default: return colors.mutedText;
-    }
-  };
-
-  const renderOrderItem = ({ item }: { item: any }) => {
+  const renderOrderItem = ({ item, index }: { item: any; index: number }) => {
     const customer = customers.find(c => c.id === item.customerId);
     const address = customer?.addresses.find(a => a.id === item.addressId);
+    const isFirstActive = activeTab === 'ACTIVE' && index === 0;
 
     return (
       <TouchableOpacity 
-        style={styles.orderCard}
+        style={[styles.orderCard, isFirstActive && styles.activeOrderCardHighlighted]}
         onPress={() => router.push(`/delivery/order/${item.id.replace('#', '')}`)}
       >
         <View style={styles.orderHeader}>
-          <Text style={styles.orderId}>{item.id}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={styles.orderId}>{item.id}</Text>
+            {activeTab === 'ACTIVE' && (
+              <View style={[styles.queuePill, isFirstActive ? styles.queuePillCurrent : styles.queuePillUpcoming]}>
+                <Text style={[styles.queuePillText, isFirstActive ? styles.queuePillTextCurrent : styles.queuePillTextUpcoming]}>
+                  {isFirstActive ? 'NEXT TO DELIVER' : `QUEUE #${index + 1}`}
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={[
             styles.statusBadge, 
-            { backgroundColor: item.status === 'OUT_FOR_DELIVERY' ? '#F59E0B' : colors.softPurple }
+            { backgroundColor: item.status === 'OUT_FOR_DELIVERY' ? '#F59E0B' : item.status === 'DELIVERED' ? colors.darkPurple : colors.softPurple }
           ]}>
             <Text style={[
               styles.statusText,
-              { color: item.status === 'OUT_FOR_DELIVERY' ? colors.white : colors.primary }
+              { color: item.status === 'OUT_FOR_DELIVERY' || item.status === 'DELIVERED' ? colors.white : colors.primary }
             ]}>
               {item.status.replace(/_/g, ' ')}
             </Text>
@@ -86,8 +91,10 @@ export default function DeliveryDashboard() {
 
         <View style={styles.orderFooter}>
           <Text style={styles.itemCount}>{item.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} Items</Text>
-          <View style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>View Details</Text>
+          <View style={[styles.actionButton, isFirstActive && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+            <Text style={[styles.actionButtonText, isFirstActive && { color: colors.white }]}>
+              {isFirstActive ? 'Deliver Now →' : 'View Details'}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -103,15 +110,7 @@ export default function DeliveryDashboard() {
           </View>
           <View>
             <Text style={styles.welcomeText}>Hello, {currentDeliveryPartner.name}</Text>
-            <TouchableOpacity 
-              style={[styles.statusToggle, { borderColor: getStatusColor(currentDeliveryPartner.status) }]}
-              onPress={togglePartnerStatus}
-            >
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(currentDeliveryPartner.status) }]} />
-              <Text style={[styles.statusToggleText, { color: getStatusColor(currentDeliveryPartner.status) }]}>
-                {currentDeliveryPartner.status}
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.partnerRoleText}>Delivery Partner • {currentDeliveryPartner.phone}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -123,16 +122,16 @@ export default function DeliveryDashboard() {
         <View style={styles.kpiCard}>
           <Package size={24} color={colors.primary} />
           <Text style={styles.kpiValue}>{activeOrders.length}</Text>
-          <Text style={styles.kpiLabel}>Active</Text>
+          <Text style={styles.kpiLabel}>Active Orders</Text>
         </View>
         <View style={styles.kpiCard}>
           <CheckCircle size={24} color={colors.primary} />
-          <Text style={styles.kpiValue}>{completedOrdersCount}</Text>
-          <Text style={styles.kpiLabel}>Completed</Text>
+          <Text style={[styles.kpiValue, { color: colors.darkPurple }]}>{completedOrdersCount}</Text>
+          <Text style={styles.kpiLabel}>Delivered</Text>
         </View>
         <View style={styles.kpiCard}>
           <Navigation size={24} color={colors.primary} />
-          <Text style={styles.kpiValue}>4.9</Text>
+          <Text style={styles.kpiValue}>{currentDeliveryPartner.rating?.toFixed(1) || '5.0'}</Text>
           <Text style={styles.kpiLabel}>Rating</Text>
         </View>
       </View>
@@ -143,22 +142,30 @@ export default function DeliveryDashboard() {
             style={[styles.tabBtn, activeTab === 'ACTIVE' && styles.activeTabBtn]}
             onPress={() => setActiveTab('ACTIVE')}
           >
-            <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>Active</Text>
+            <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>
+              Active {activeOrders.length > 0 ? `(${activeOrders.length})` : ''}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.tabBtn, activeTab === 'COMPLETED' && styles.activeTabBtn]}
             onPress={() => setActiveTab('COMPLETED')}
           >
-            <Text style={[styles.tabText, activeTab === 'COMPLETED' && styles.activeTabText]}>Completed Today</Text>
+            <Text style={[styles.tabText, activeTab === 'COMPLETED' && styles.activeTabText]}>
+              Delivered {completedOrdersCount > 0 ? `(${completedOrdersCount})` : ''}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {activeTab === 'ACTIVE' ? (
           activeOrders.length === 0 ? (
             <View style={styles.emptyState}>
-              <Package size={48} color={colors.border} />
-              <Text style={styles.emptyStateText}>No active deliveries at the moment.</Text>
-              <Text style={styles.emptyStateSubtext}>Take a break or check back later!</Text>
+              <CheckCircle size={56} color={colors.primary} />
+              <Text style={styles.emptyStateText}>All Deliveries Completed! 🎉</Text>
+              <Text style={styles.emptyStateSubtext}>
+                {completedOrdersCount > 0 
+                  ? `You have delivered all ${completedOrdersCount} assigned orders. Excellent work!` 
+                  : 'No active deliveries at the moment. Take a break!'}
+              </Text>
             </View>
           ) : (
             <FlatList
@@ -173,8 +180,8 @@ export default function DeliveryDashboard() {
           completedOrders.length === 0 ? (
             <View style={styles.emptyState}>
               <CheckCircle size={48} color={colors.border} />
-              <Text style={styles.emptyStateText}>No completed deliveries yet.</Text>
-              <Text style={styles.emptyStateSubtext}>Keep up the good work!</Text>
+              <Text style={styles.emptyStateText}>No delivered orders yet.</Text>
+              <Text style={styles.emptyStateSubtext}>Orders you complete will appear here.</Text>
             </View>
           ) : (
             <FlatList
@@ -227,26 +234,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  statusToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  partnerRoleText: {
+    fontSize: 13,
+    color: colors.mutedText,
+    fontWeight: '500',
+  },
+  activeOrderCardHighlighted: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#FAF5FF',
+  },
+  queuePill: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  queuePillCurrent: {
+    backgroundColor: colors.primary,
   },
-  statusToggleText: {
-    fontSize: 12,
-    fontWeight: '600',
+  queuePillUpcoming: {
+    backgroundColor: '#E5E7EB',
+  },
+  queuePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  queuePillTextCurrent: {
+    color: colors.white,
+  },
+  queuePillTextUpcoming: {
+    color: colors.text,
   },
   logoutButton: {
     padding: 8,

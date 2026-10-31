@@ -8,7 +8,7 @@ import { DeliveryPartner } from '../../src/store/types';
 
 export default function OwnerDeliveryScreen() {
   const router = useRouter();
-  const { deliveryPartners, addDeliveryPartner, removeDeliveryPartner } = useStore();
+  const { deliveryPartners, orders, addDeliveryPartner, removeDeliveryPartner } = useStore();
   const [modalVisible, setModalVisible] = React.useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
   const [partnerToDelete, setPartnerToDelete] = React.useState<DeliveryPartner | null>(null);
@@ -67,18 +67,9 @@ export default function OwnerDeliveryScreen() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'AVAILABLE': return colors.darkPurple;
-      case 'ON_DELIVERY': return '#d97706'; // orange
-      case 'ASSIGNED': return colors.primary;
-      case 'OFFLINE': return colors.mutedText;
-      default: return colors.text;
-    }
-  };
-
   const renderPartner = ({ item }: { item: DeliveryPartner }) => {
-    const statusColor = getStatusColor(item.status);
+    const activeCount = orders.filter(o => o.deliveryPartnerId === item.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
+    const deliveredCount = orders.filter(o => o.deliveryPartnerId === item.id && o.status === 'DELIVERED').length;
     
     return (
       <View style={styles.card}>
@@ -96,11 +87,6 @@ export default function OwnerDeliveryScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {item.status.replace(/_/g, ' ')}
-              </Text>
-            </View>
             <TouchableOpacity 
               onPress={() => {
                 setPartnerToDelete(item);
@@ -115,14 +101,14 @@ export default function OwnerDeliveryScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Active Orders</Text>
-            <Text style={[styles.statValue, { color: item.activeOrders > 0 ? colors.primary : colors.text }]}>
-              {item.activeOrders}
+            <Text style={[styles.statValue, { color: activeCount > 0 ? colors.primary : colors.text }]}>
+              {activeCount}
             </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Completed</Text>
-            <Text style={styles.statValue}>{item.completedOrders}</Text>
+            <Text style={styles.statLabel}>Delivered</Text>
+            <Text style={[styles.statValue, { color: colors.darkPurple }]}>{deliveredCount}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>

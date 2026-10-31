@@ -13,6 +13,7 @@
     "expo-location": "~57.0.9",
     "expo-router": "~57.0.12",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.26",
     "fbjs": "^3.0.5",
     "lucide-react-native": "^1.31.0",
     "react": "19.2.3",

@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { 
   Product, Customer, Order, ChatMessage, CartItem, OrderItem,
-  Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent, Coupon
+  Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent, Coupon, PaymentStatus
 } from './types';
 import { mockProducts, mockCustomers, mockDeliveryPartners, mockOrders, mockCoupons, SERVICEABLE_PINCODES } from './mockData';
 
@@ -28,6 +28,7 @@ interface AppState {
   chatState: ChatState;
   coupons: Coupon[];
   appliedCoupon: Coupon | null;
+  tempCustomer?: { phone?: string; name?: string };
   
   // Actions
   toggleProductStock: (productId: string) => void;
@@ -49,6 +50,7 @@ interface AppState {
   markOrderAsPaid: (orderId: string, paymentMethod?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignDeliveryPartner: (orderId: string, partnerId: string) => void;
+  assignMultipleOrders: (orderIds: string[], partnerId: string) => Promise<void>;
   cancelOrder: (orderId: string) => void;
   saveNewCustomer: (customerData: Partial<Customer>) => Customer;
   demoFastForward: (orderId: string) => void;
@@ -70,9 +72,6 @@ interface AppState {
   removeCoupon: () => void;
   getCartTotal: () => { subtotal: number; discountAmount: number; delivery: number; total: number };
   rateDeliveryPartner: (orderId: string, rating: number) => void;
-  
-  // Backend Integration
-  fetchProducts: () => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -253,20 +252,7 @@ export const useStore = create<AppState>()(
 
       logoutDeliveryPartner: () => set({ currentDeliveryPartner: null }),
 
-      togglePartnerStatus: () => set((state) => {
-        if (!state.currentDeliveryPartner) return state;
-        const currentStatus = state.currentDeliveryPartner.status;
-        let newStatus: 'AVAILABLE' | 'OFFLINE' | 'ON_DELIVERY' | 'ASSIGNED' = currentStatus;
-        
-        if (currentStatus === 'AVAILABLE') newStatus = 'OFFLINE';
-        else if (currentStatus === 'OFFLINE') newStatus = 'AVAILABLE';
-        
-        const updatedPartner = { ...state.currentDeliveryPartner, status: newStatus };
-        return {
-          currentDeliveryPartner: updatedPartner,
-          deliveryPartners: state.deliveryPartners.map(dp => dp.id === updatedPartner.id ? updatedPartner : dp)
-        };
-      }),
+      togglePartnerStatus: () => {},
       
       getCartTotal: () => {
         const state = get();
@@ -480,7 +466,7 @@ export const useStore = create<AppState>()(
         set((state) => {
           const updatedOrders = state.orders.map(o => {
             if (o.id === orderId) {
-              return { ...o, paymentStatus: 'PAID', paymentMethod };
+              return { ...o, paymentStatus: 'PAID' as PaymentStatus, paymentMethod };
             }
             return o;
           });
@@ -540,19 +526,12 @@ export const useStore = create<AppState>()(
         let updatedPartners = state.deliveryPartners;
         let updatedCurrentPartner = state.currentDeliveryPartner;
 
-        if (status === 'OUT_FOR_DELIVERY' && order.deliveryPartnerId) {
+        if (status === 'DELIVERED' && order.deliveryPartnerId) {
           updatedPartners = state.deliveryPartners.map(dp => 
-            dp.id === order.deliveryPartnerId ? { ...dp, status: 'ON_DELIVERY' } : dp
+            dp.id === order.deliveryPartnerId ? { ...dp, activeOrders: Math.max(0, dp.activeOrders - 1), completedOrders: dp.completedOrders + 1 } : dp
           );
           if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
-            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'ON_DELIVERY' };
-          }
-        } else if (status === 'DELIVERED' && order.deliveryPartnerId) {
-          updatedPartners = state.deliveryPartners.map(dp => 
-            dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE', activeOrders: Math.max(0, dp.activeOrders - 1), completedOrders: dp.completedOrders + 1 } : dp
-          );
-          if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
-            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'AVAILABLE', activeOrders: Math.max(0, updatedCurrentPartner.activeOrders - 1), completedOrders: updatedCurrentPartner.completedOrders + 1 };
+            updatedCurrentPartner = { ...updatedCurrentPartner, activeOrders: Math.max(0, updatedCurrentPartner.activeOrders - 1), completedOrders: updatedCurrentPartner.completedOrders + 1 };
           }
         }
 
@@ -616,6 +595,7 @@ export const useStore = create<AppState>()(
       assignDeliveryPartner: (orderId, partnerId) => {
         const state = get();
         const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
+        const assignedTime = new Date().toISOString();
         
         // POST to SQL Database
         fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
@@ -628,23 +608,34 @@ export const useStore = create<AppState>()(
           id: generateId(),
           orderId,
           status: 'ASSIGNED',
-          timestamp: new Date().toISOString(),
+          timestamp: assignedTime,
           message: 'Delivery Partner Assigned'
         };
 
         const chatText = `🚚 Your ReLeaf order has been assigned to our delivery partner, ${partner?.name || 'an agent'}.`;
 
         set((state) => {
-          const order = state.orders.find(o => o.id === orderId);
+          const updatedOrders = state.orders.map(o => o.id === orderId ? { 
+            ...o, 
+            deliveryPartnerId: partnerId, 
+            assignedAt: assignedTime,
+            status: 'ASSIGNED' as OrderStatus,
+            trackingEvents: [...o.trackingEvents, newEvent],
+            items: o.items.map(i => ({ ...i, itemStatus: 'ASSIGNED' as OrderStatus }))
+          } : o);
+
+          const updatedPartners = state.deliveryPartners.map(dp => 
+            dp.id === partnerId ? { ...dp, activeOrders: dp.activeOrders + 1 } : dp
+          );
+
+          const updatedCurrentPartner = state.currentDeliveryPartner?.id === partnerId
+            ? { ...state.currentDeliveryPartner, activeOrders: state.currentDeliveryPartner.activeOrders + 1 }
+            : state.currentDeliveryPartner;
+
           return {
-            orders: state.orders.map(o => o.id === orderId ? { 
-              ...o, 
-              deliveryPartnerId: partnerId, 
-              status: 'ASSIGNED',
-              trackingEvents: [...o.trackingEvents, newEvent],
-              items: o.items.map(i => ({ ...i, itemStatus: 'ASSIGNED' }))
-            } : o),
-            deliveryPartners: state.deliveryPartners.map(dp => dp.id === partnerId ? { ...dp, status: 'ASSIGNED', activeOrders: dp.activeOrders + 1 } : dp)
+            orders: updatedOrders,
+            deliveryPartners: updatedPartners,
+            currentDeliveryPartner: updatedCurrentPartner
           };
         });
 
@@ -652,6 +643,59 @@ export const useStore = create<AppState>()(
         if (order?.customerId === get().currentCustomer?.id) {
           get().addChatMessage({ sender: 'bot', text: chatText, type: 'text', orderId });
         }
+      },
+
+      assignMultipleOrders: async (orderIds, partnerId) => {
+        const state = get();
+        const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
+        const baseTime = Date.now();
+
+        for (let i = 0; i < orderIds.length; i++) {
+          const orderId = orderIds[i];
+          const assignedTime = new Date(baseTime + i * 1000).toISOString();
+
+          // Send to DB
+          fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'ASSIGNED', deliveryPartnerId: partnerId })
+          }).catch(err => console.error(`Failed to assign order ${orderId} in DB:`, err));
+
+          const newEvent: TrackingEvent = {
+            id: generateId(),
+            orderId,
+            status: 'ASSIGNED',
+            timestamp: assignedTime,
+            message: `Delivery Partner Assigned (Queue #${i + 1})`
+          };
+
+          set((s) => ({
+            orders: s.orders.map(o => o.id === orderId ? {
+              ...o,
+              deliveryPartnerId: partnerId,
+              assignedAt: assignedTime,
+              status: 'ASSIGNED' as OrderStatus,
+              trackingEvents: [...o.trackingEvents, newEvent],
+              items: o.items.map(it => ({ ...it, itemStatus: 'ASSIGNED' as OrderStatus }))
+            } : o)
+          }));
+        }
+
+        // Update partner active orders count
+        set((s) => {
+          const countToAdd = orderIds.length;
+          const updatedPartners = s.deliveryPartners.map(dp => 
+            dp.id === partnerId ? { ...dp, activeOrders: dp.activeOrders + countToAdd } : dp
+          );
+          const updatedCurrentPartner = s.currentDeliveryPartner?.id === partnerId
+            ? { ...s.currentDeliveryPartner, activeOrders: s.currentDeliveryPartner.activeOrders + countToAdd }
+            : s.currentDeliveryPartner;
+
+          return {
+            deliveryPartners: updatedPartners,
+            currentDeliveryPartner: updatedCurrentPartner
+          };
+        });
       },
 
       cancelOrder: (orderId) => {
@@ -817,7 +861,7 @@ export const useStore = create<AppState>()(
           
           if (!response.ok) throw new Error('Failed to save to database');
           
-          const newDp = {
+          const newDp: DeliveryPartner = {
             id: `dp_${Date.now()}`,
             name,
             phone,
@@ -841,15 +885,21 @@ export const useStore = create<AppState>()(
         try {
           const response = await fetch(getApiUrl(get().appStoreType) + '/api/delivery-partners');
           const data = await response.json();
-          // Map DB schema to frontend schema
-          const mappedPartners = data.map((dp: any) => ({
-            ...dp,
-            status: dp.availabilityStatus || 'AVAILABLE',
-            activeOrders: dp.activeOrders || 0,
-            completedOrders: dp.completedOrders || 0,
-            rating: dp.rating || 5.0
-          }));
-          set({ deliveryPartners: mappedPartners });
+          const currentOrders = get().orders;
+          const mappedPartners = data.map((dp: any) => {
+            const activeCount = currentOrders.filter(o => o.deliveryPartnerId === dp.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
+            const completedCount = currentOrders.filter(o => o.deliveryPartnerId === dp.id && o.status === 'DELIVERED').length;
+            return {
+              ...dp,
+              status: 'AVAILABLE' as const,
+              activeOrders: activeCount,
+              completedOrders: completedCount,
+              rating: dp.rating || 5.0
+            };
+          });
+          const curr = get().currentDeliveryPartner;
+          const updatedCurr = curr ? mappedPartners.find((p: any) => p.id === curr.id) || curr : null;
+          set({ deliveryPartners: mappedPartners, currentDeliveryPartner: updatedCurr });
         } catch (error) {
           console.error("Failed to fetch delivery partners from DB:", error);
         }
@@ -869,7 +919,20 @@ export const useStore = create<AppState>()(
         try {
           const response = await fetch(getApiUrl(get().appStoreType) + '/api/orders');
           const data = await response.json();
-          set({ orders: data });
+          const currentPartners = get().deliveryPartners;
+          const updatedPartners = currentPartners.map((dp: any) => {
+            const activeCount = data.filter((o: any) => o.deliveryPartnerId === dp.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
+            const completedCount = data.filter((o: any) => o.deliveryPartnerId === dp.id && o.status === 'DELIVERED').length;
+            return {
+              ...dp,
+              status: 'AVAILABLE' as const,
+              activeOrders: activeCount,
+              completedOrders: completedCount
+            };
+          });
+          const curr = get().currentDeliveryPartner;
+          const updatedCurr = curr ? updatedPartners.find((p: any) => p.id === curr.id) || curr : null;
+          set({ orders: data, deliveryPartners: updatedPartners, currentDeliveryPartner: updatedCurr });
         } catch (error) {
           console.error("Failed to fetch orders from DB:", error);
         }
@@ -989,7 +1052,7 @@ export const useStore = create<AppState>()(
       partialize: (state) => {
         // Strip out base64 images from the cart to avoid exceeding the 5MB LocalStorage limit on Web
         const sanitizedCart = state.cart.map(item => {
-          const product = { ...item.product };
+          const product = { ...item.product } as any;
           delete product.imageUrl;
           delete product.imageFallback;
           return { ...item, product };

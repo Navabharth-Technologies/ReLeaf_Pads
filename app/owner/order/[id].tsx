@@ -128,7 +128,7 @@ export default function OwnerOrderDetailScreen() {
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>₹{(order.total || 0).toFixed(2)}</Text>
           </View>
-          
+
           <View style={[styles.totalRow, { borderTopWidth: 0, paddingTop: 4 }]}>
             <Text style={styles.subtotalLabel}>Payment Status</Text>
             <View style={[styles.statusBadge, { backgroundColor: order.paymentStatus === 'PAID' ? '#dcfce7' : '#fee2e2' }]}>
@@ -215,12 +215,17 @@ export default function OwnerOrderDetailScreen() {
               <Text style={styles.noPartnersText}>No partners found.</Text>
             ) : (
               availablePartners.map(dp => {
-                const isAvailable = dp.status === 'AVAILABLE';
+                const partnerActiveCount = orders.filter(
+                  o => o.deliveryPartnerId === dp.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
+                ).length;
+                const partnerCompletedCount = orders.filter(
+                  o => o.deliveryPartnerId === dp.id && o.status === 'DELIVERED'
+                ).length;
+
                 return (
                   <TouchableOpacity
                     key={dp.id}
-                    style={[styles.partnerOption, !isAvailable && { opacity: 0.5 }]}
-                    disabled={!isAvailable}
+                    style={styles.partnerOption}
                     onPress={() => {
                       assignDeliveryPartner(order.id, dp.id);
                       setPartnerModalVisible(false);
@@ -229,11 +234,13 @@ export default function OwnerOrderDetailScreen() {
                     <View>
                       <Text style={styles.partnerName}>{dp.name}</Text>
                       <Text style={styles.partnerPhone}>{dp.phone}</Text>
-                      {!isAvailable && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>Offline / Unavailable</Text>}
+                      <Text style={{ color: colors.mutedText, fontSize: 12, marginTop: 4 }}>
+                        {partnerActiveCount} active in queue • {partnerCompletedCount} delivered
+                      </Text>
                     </View>
                     <View style={styles.ratingBadge}>
                       <Star size={12} color={colors.darkPurple} fill={colors.darkPurple} />
-                      <Text style={styles.ratingText}>{dp.rating}</Text>
+                      <Text style={styles.ratingText}>{dp.rating?.toFixed(1) || '5.0'}</Text>
                     </View>
                   </TouchableOpacity>
                 );

@@ -38,6 +38,8 @@ export interface Customer {
   phone: string;
   pincode: string;
   addresses: Address[];
+  totalSavings?: number;
+  couponsUsed?: number;
 }
 
 export type AppStoreType = 'PADS' | 'DIAPERS';
@@ -69,6 +71,7 @@ export interface StoreState {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   rateDeliveryPartner: (orderId: string, rating: number) => void;
+  assignMultipleOrders: (orderIds: string[], partnerId: string) => Promise<void>;
 }
 
 export interface CartItem {
@@ -118,12 +121,20 @@ export interface Order {
   delivery: number;
   total: number;
   paymentId?: string;
+  paymentMethod?: string;
   paymentStatus: PaymentStatus;
   status: OrderStatus;
   date: string;
   estimatedDelivery?: string;
   deliveryPartnerId?: string;
+  assignedAt?: string;
   deliveryRating?: number;
+  deliveryAddress?: Address;
+  couponId?: string;
+  couponCode?: string;
+  discountAmount?: number;
+  influencerId?: string;
+  influencerName?: string;
   trackingEvents: TrackingEvent[];
 }
 
@@ -132,7 +143,7 @@ export interface ChatMessage {
   sender: 'bot' | 'user';
   text: string;
   timestamp: string;
-  type?: 'text' | 'products' | 'cart' | 'checkout' | 'payment' | 'order_success' | 'link';
+  type?: 'text' | 'products' | 'cart' | 'checkout' | 'payment' | 'order_success' | 'link' | 'add_to_cart_success';
   linkUrl?: string;
   linkText?: string;
   orderId?: string;
@@ -140,7 +151,7 @@ export interface ChatMessage {
 
 export type ChatState = 'IDLE' | 'WELCOME' | 'BROWSING_PRODUCTS' | 'PRODUCT_SELECTED' | 'CART' | 'CHECKING_PINCODE' | 'COLLECTING_CUSTOMER_DETAILS' | 'COLLECTING_CUSTOMER_DETAILS_NAME' | 'COLLECTING_ADDRESS' | 'ADDRESS_CONFIRMATION' | 'ORDER_REVIEW' | 'PAYMENT' | 'PAYMENT_SUCCESS' | 'ORDER_CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'WAITING_FOR_LOCATION';
 
-export type CouponType = 'PERCENTAGE' | 'FIXED' | 'INFLUENCER';
+export type CouponType = 'PERCENTAGE' | 'FIXED' | 'INFLUENCER' | 'GENERAL' | 'USER_SPECIFIC' | 'FIRST_ORDER';
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 
 export interface Coupon {

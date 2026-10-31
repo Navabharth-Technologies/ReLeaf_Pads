@@ -37,6 +37,19 @@
     "plugins": [
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d271686b-c573-45af-b13e-aa10df628670"
+      }
+    },
+    "owner": "tejashwini_s",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d271686b-c573-45af-b13e-aa10df628670"
+    }
   }
 }

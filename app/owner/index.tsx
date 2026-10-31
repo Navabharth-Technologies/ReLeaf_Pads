@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { useRouter } from 'expo-router';
@@ -7,16 +7,41 @@ import { Package, Truck, ClipboardList, AlertCircle, ChevronRight } from 'lucide
 
 export default function OwnerDashboardScreen() {
   const router = useRouter();
-  const { orders, products } = useStore();
+  const { orders, products, fetchOrders, fetchProducts } = useStore();
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  const validOrders = orders.filter(o => o.status !== 'CANCELLED' && o.paymentStatus === 'PAID');
-  const totalSales = validOrders.reduce((sum, o) => sum + o.total, 0);
-  const openOrders = orders.filter(o => ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED'].includes(o.status)).length;
-  const unassignedDeliveries = orders.filter(o => o.status === 'PACKED' && !o.deliveryPartnerId).length;
+  useEffect(() => {
+    fetchOrders();
+    fetchProducts();
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchOrders(), fetchProducts()]);
+    setRefreshing(false);
+  }, [fetchOrders, fetchProducts]);
+
+  const validOrders = orders.filter(o => o.paymentStatus === 'PAID' && o.status !== 'CANCELLED');
+  const totalSales = validOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  
+  // Open orders are paid orders in active processing/fulfillment stages (not yet delivered or cancelled)
+  const openOrders = validOrders.filter(o => 
+    ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED', 'ASSIGNED', 'OUT_FOR_DELIVERY'].includes(o.status)
+  ).length;
+
+  const deliveredOrders = validOrders.filter(o => o.status === 'DELIVERED').length;
+  const unassignedDeliveries = validOrders.filter(o => o.status === 'PACKED' && !o.deliveryPartnerId).length;
   const lowStockItems = products.filter(p => p.stockStatus === 'LOW_STOCK' || p.stockStatus === 'OUT_OF_STOCK').length;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+    >
       <View style={styles.kpiGrid}>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiValue}>₹{totalSales}</Text>
@@ -25,6 +50,10 @@ export default function OwnerDashboardScreen() {
         <View style={styles.kpiCard}>
           <Text style={styles.kpiValue}>{openOrders}</Text>
           <Text style={styles.kpiLabel}>Open Orders</Text>
+        </View>
+        <View style={styles.kpiCard}>
+          <Text style={[styles.kpiValue, { color: colors.darkPurple }]}>{deliveredOrders}</Text>
+          <Text style={styles.kpiLabel}>Delivered Orders</Text>
         </View>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiValue}>{unassignedDeliveries}</Text>
