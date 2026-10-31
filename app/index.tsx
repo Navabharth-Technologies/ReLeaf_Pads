@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { useStore } from '../src/store/useStore';
+import { ShieldCheck } from 'lucide-react-native';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
@@ -54,6 +55,28 @@ export default function RoleSelectionScreen() {
             <Text style={styles.buttonTextPrimary}>Continue as Delivery Partner</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Footer with Legal Policies & Navabharath attribution */}
+        <View style={styles.footerContainer}>
+          <TouchableOpacity 
+            style={styles.legalButton} 
+            onPress={() => router.push('/legal')}
+            activeOpacity={0.7}
+          >
+            <ShieldCheck size={16} color={colors.darkPurple} />
+            <Text style={styles.legalButtonText}>Privacy Policy & Terms</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.poweredByButton}
+            onPress={() => router.push('/legal')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.poweredByText}>
+              Powered By <Text style={styles.poweredByBold}>Navabharath Technologies</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -67,29 +90,16 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 60,
+    marginTop: 20,
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.darkPurple,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.mutedText,
-    fontStyle: 'italic',
   },
   buttonContainer: {
     width: '100%',
@@ -111,5 +121,36 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
-  }
+  },
+  footerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  legalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: colors.softPurple,
+  },
+  legalButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.darkPurple,
+  },
+  poweredByButton: {
+    paddingVertical: 4,
+  },
+  poweredByText: {
+    fontSize: 12,
+    color: colors.mutedText,
+  },
+  poweredByBold: {
+    fontWeight: '700',
+    color: '#0F2942',
+  },
 });

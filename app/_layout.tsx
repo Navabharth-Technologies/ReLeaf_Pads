@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="customer" />
         <Stack.Screen name="owner-login" />
         <Stack.Screen name="owner" />
+        <Stack.Screen name="legal" />
       </Stack>
     </>
   );
