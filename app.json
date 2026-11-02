@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tejashwini_s.ReLeaf_Pads",
+      "package": "com.navabharath.releafpads",
       "config": {
         "googleMaps": {
           "apiKey": "dummy_key_to_prevent_crash_releaf_pads"
