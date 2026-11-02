@@ -18,13 +18,9 @@ import {
   RotateCcw,
   Truck,
   ChevronLeft,
-  ExternalLink,
-  Mail,
-  Globe,
   Building2,
   CheckCircle2,
   Lock,
-  Phone,
   HeartHandshake,
 } from 'lucide-react-native';
 
@@ -460,35 +456,6 @@ export default function LegalScreen() {
               </View>
             </View>
 
-            <View style={styles.contactCardInner}>
-              <Text style={styles.contactInnerTitle}>Corporate Information & Inquiries</Text>
-              
-              <TouchableOpacity
-                style={styles.contactRow}
-                onPress={() => openLink('https://navabharath.com')}
-                activeOpacity={0.7}
-              >
-                <Globe size={16} color={colors.darkPurple} />
-                <Text style={styles.contactRowText}>Official Website: www.navabharath.com</Text>
-                <ExternalLink size={14} color={colors.mutedText} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.contactRow}
-                onPress={() => openLink('mailto:contact@navabharath.com')}
-                activeOpacity={0.7}
-              >
-                <Mail size={16} color={colors.darkPurple} />
-                <Text style={styles.contactRowText}>Email: contact@navabharath.com</Text>
-                <ExternalLink size={14} color={colors.mutedText} />
-              </TouchableOpacity>
-
-              <View style={styles.contactRow}>
-                <Building2 size={16} color={colors.darkPurple} />
-                <Text style={styles.contactRowText}>Technology & Architecture Partner</Text>
-              </View>
-            </View>
-
             <View style={styles.companyFooterNotice}>
               <Text style={styles.copyrightNotice}>
                 © {new Date().getFullYear()} Navabharath Technologies. All Rights Reserved.
@@ -733,18 +700,18 @@ const styles = StyleSheet.create({
   },
   companyCardHeader: {
     alignItems: 'center',
-    gap: 12,
-    paddingTop: 4,
+    gap: 10,
+    paddingTop: 8,
   },
   logoContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   companyLogo: {
     width: 220,
-    height: 70,
+    height: 160,
   },
   companyTitleContainer: {
     alignItems: 'center',
@@ -776,7 +743,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   highlightItem: {
     width: '48%',
@@ -795,33 +762,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
-  },
-  contactCardInner: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 10,
-  },
-  contactInnerTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.mutedText,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  contactRowText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '500',
   },
   companyFooterNotice: {
     alignItems: 'center',
