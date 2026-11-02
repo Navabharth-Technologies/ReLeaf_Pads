@@ -23,6 +23,7 @@ import {
   Lock,
   HeartHandshake,
 } from 'lucide-react-native';
+import { NAVABHARATH_LOGO_BASE64 } from '../assets/navabharathLogoBase64';
 
 type TabKey = 'all' | 'privacy' | 'terms' | 'shipping' | 'refund' | 'company';
 
@@ -420,7 +421,7 @@ export default function LegalScreen() {
             <View style={styles.companyCardHeader}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../assets/navabharath_logo.png')}
+                  source={{ uri: NAVABHARATH_LOGO_BASE64 }}
                   style={styles.companyLogo}
                   resizeMode="contain"
                 />
