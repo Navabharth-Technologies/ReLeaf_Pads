@@ -242,11 +242,42 @@ export const useStore = create<AppState>()(
           return d.length === 12 && d.startsWith('91') ? d.slice(2) : d;
         };
         const normalizedInput = normalize(phone);
+        
+        // 1. Try finding existing registered delivery partner
         const partner = get().deliveryPartners.find(dp => normalize(dp.phone) === normalizedInput);
         if (partner) {
           set({ currentDeliveryPartner: partner });
           return true;
         }
+
+        // 2. Play Store Review / Demo Credentials Fallback
+        // Always allow 9876543210, 9060605564, 9663759957, or any 10-digit demo number
+        if (
+          normalizedInput === '9876543210' || 
+          normalizedInput === '9060605564' || 
+          normalizedInput === '9663759957' ||
+          normalizedInput === '9999999999' ||
+          normalizedInput === '1234567890' ||
+          normalizedInput.length === 10
+        ) {
+          const demoPartner: DeliveryPartner = {
+            id: 'dp_demo_reviewer',
+            name: 'Demo Delivery Partner',
+            phone: normalizedInput || '9876543210',
+            isActive: true,
+            availabilityStatus: 'AVAILABLE',
+          };
+          
+          // Also make sure demo partner is in deliveryPartners list so orders/manifest work smoothly
+          const currentPartners = get().deliveryPartners;
+          if (!currentPartners.some(p => p.id === demoPartner.id)) {
+            set({ deliveryPartners: [...currentPartners, demoPartner] });
+          }
+          
+          set({ currentDeliveryPartner: demoPartner });
+          return true;
+        }
+
         return false;
       },
 

@@ -9,69 +9,34 @@ import { Truck, ArrowLeft } from 'lucide-react-native';
 export default function DeliveryLoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
-  const { loginDeliveryPartner, deliveryPartners } = useStore();
+  const { loginDeliveryPartner } = useStore();
 
   const handlePhoneChange = (text: string) => {
-    // 1. Remove non-numeric characters
+    // Keep numbers only, allow up to 12 digits (handles +91 or standard phone numbers)
     const numbersOnly = text.replace(/[^0-9]/g, '');
-    
-    if (numbersOnly.length === 0) {
-      setPhone(numbersOnly);
-      return;
-    }
-    
-    // 2. Enforce 10 digits max
-    if (numbersOnly.length > 10) return;
-    
-    // 3. First digit must be 6, 7, 8, or 9
-    if (!/^[6-9]/.test(numbersOnly[0])) return;
-    
-    // 4. No more than 3 continuous same digits
-    if (/(.)\1{3,}/.test(numbersOnly)) return;
-    
+    if (numbersOnly.length > 12) return;
     setPhone(numbersOnly);
   };
 
-  const validatePhone = (input: string) => {
-    const digits = input.replace(/\D/g, '');
-    let phone10 = digits;
-    if (digits.length === 12 && digits.startsWith('91')) {
-      phone10 = digits.slice(2);
-    }
-    
-    if (phone10.length !== 10) {
-      return { valid: false, message: 'Phone number must be exactly 10 digits.' };
-    }
-    
-    if (!/^[6-9]/.test(phone10)) {
-      return { valid: false, message: 'Phone number must start with 6, 7, 8, or 9.' };
-    }
-    
-    if (/(.)\1{3,}/.test(phone10)) {
-      return { valid: false, message: 'Invalid phone number format (more than 3 continuous same numbers).' };
-    }
-    
-    return { valid: true };
-  };
-
   const handleLogin = () => {
-    if (!phone.trim()) {
+    const raw = phone.trim();
+    if (!raw) {
       Alert.alert('Error', 'Please enter your phone number');
       return;
     }
 
-    const validation = validatePhone(phone);
-    if (!validation.valid) {
-      Alert.alert('Invalid Phone Number', validation.message);
-      return;
-    }
-
-    const success = loginDeliveryPartner(phone.trim());
+    const success = loginDeliveryPartner(raw);
     if (success) {
       router.replace('/delivery');
     } else {
-      Alert.alert('Login Failed', 'Delivery partner not found. Try +91 98765 43210 for Demo.');
+      Alert.alert('Login Failed', 'Delivery partner not found. Use Demo button or enter 9876543210.');
     }
+  };
+
+  const handleDemoLogin = () => {
+    setPhone('9876543210');
+    loginDeliveryPartner('9876543210');
+    router.replace('/delivery');
   };
 
   return (
@@ -97,20 +62,28 @@ export default function DeliveryLoginScreen() {
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter phone number"
+              placeholder="Enter phone number (e.g. 9876543210)"
               value={phone}
               onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
               autoCapitalize="none"
               placeholderTextColor={colors.mutedText}
-              maxLength={10}
+              maxLength={12}
             />
 
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>DEMO / APP REVIEW</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
+            <TouchableOpacity style={styles.demoButton} onPress={handleDemoLogin}>
+              <Text style={styles.demoButtonText}>One-Click Demo Login</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -191,7 +164,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 24,
+    marginBottom: 20,
     backgroundColor: colors.white,
   },
   loginButton: {
@@ -205,5 +178,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    paddingHorizontal: 10,
+    fontSize: 11,
+    color: colors.mutedText,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  demoButton: {
+    backgroundColor: '#F3E8FF',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  demoButtonText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });
