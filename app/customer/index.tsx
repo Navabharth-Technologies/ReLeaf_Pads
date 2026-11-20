@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useStore, getApiUrl } from '../../src/store/useStore';
-import { Send, Truck, ChevronRight } from 'lucide-react-native';
+import { Send, Truck, ChevronRight, X } from 'lucide-react-native';
 import { ChatMessage, Customer, Address } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
 import { useRouter } from 'expo-router';
@@ -25,6 +25,7 @@ export default function CustomerChatScreen() {
   const [tempCustomer, setTempCustomer] = useState<Partial<Customer>>({});
   const [tempAddress, setTempAddress] = useState<Partial<Address>>({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [previewProduct, setPreviewProduct] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Find active order for the current customer
@@ -570,15 +571,16 @@ export default function CustomerChatScreen() {
                 const isOut = p.stockStatus === 'OUT_OF_STOCK';
                 return (
                   <View key={p.id} style={styles.productCard}>
-                    <View>
+                    <TouchableOpacity activeOpacity={0.8} onPress={() => setPreviewProduct(p)}>
                       {p.imageUrl ? (
-                        <Image source={{ uri: p.imageUrl }} style={styles.img} />
+                        <Image source={{ uri: p.imageUrl }} style={styles.img} resizeMode="cover" />
                       ) : (
                         <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
                       )}
                       <Text style={styles.pName} numberOfLines={2}>{p.name}</Text>
                       <Text style={styles.pPrice}>₹{p.sellingPrice}</Text>
-                    </View>
+                      {p.packSize ? <Text style={styles.packTag}>Pack: {p.packSize}</Text> : null}
+                    </TouchableOpacity>
                     {isOut ? (
                       <Text style={styles.outOfStockText}>Currently Out of Stock</Text>
                     ) : (
@@ -754,6 +756,87 @@ export default function CustomerChatScreen() {
         </ScrollView>
       </View>
 
+      {/* Enlarged Product Image & Details Preview Modal */}
+      <Modal
+        visible={!!previewProduct}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewProduct(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setPreviewProduct(null)} 
+          />
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.modalCloseBtn} 
+              onPress={() => setPreviewProduct(null)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={22} color="#4A4A4A" />
+            </TouchableOpacity>
+
+            {previewProduct?.imageUrl ? (
+              <Image 
+                source={{ uri: previewProduct.imageUrl }} 
+                style={styles.enlargedImg} 
+                resizeMode="contain" 
+              />
+            ) : (
+              <View style={[styles.enlargedImg, { backgroundColor: previewProduct?.imageFallback || colors.softPurple, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: colors.darkPurple, fontSize: 16, fontWeight: '600' }}>Image Not Available</Text>
+              </View>
+            )}
+
+            <View style={styles.modalDetails}>
+              <Text style={styles.modalTitle}>{previewProduct?.name}</Text>
+              
+              <View style={styles.modalRow}>
+                <Text style={styles.modalPrice}>₹{previewProduct?.sellingPrice}</Text>
+                {previewProduct?.mrp && previewProduct?.mrp > previewProduct?.sellingPrice ? (
+                  <Text style={styles.modalMrp}>MRP ₹{previewProduct?.mrp}</Text>
+                ) : null}
+                {previewProduct?.discount ? (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>{previewProduct.discount}% OFF</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {previewProduct?.packSize ? (
+                <View style={styles.modalBadgeRow}>
+                  <Text style={styles.modalBadgeLabel}>Pack Details:</Text>
+                  <Text style={styles.modalBadgeValue}>{previewProduct.packSize}</Text>
+                </View>
+              ) : null}
+
+              {previewProduct?.description ? (
+                <Text style={styles.modalDesc}>{previewProduct.description}</Text>
+              ) : null}
+
+              {previewProduct?.stockStatus === 'OUT_OF_STOCK' ? (
+                <Text style={[styles.outOfStockText, { marginTop: 14 }]}>Currently Out of Stock</Text>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.primaryBtn, { width: '100%', marginTop: 16 }]} 
+                  onPress={() => {
+                    if (previewProduct) {
+                      addToCart(previewProduct, 1);
+                      addChatMessage({ sender: 'bot', text: 'Added ' + (previewProduct.packSize || previewProduct.name) + ' to your cart. 🛒', type: 'add_to_cart_success' });
+                      setPreviewProduct(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>Add to Cart</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -880,5 +963,105 @@ const styles = StyleSheet.create({
   linkCard: { marginTop: 8, backgroundColor: colors.softPurple, padding: 10, borderRadius: 8, alignItems: 'center' },
   linkText: { color: colors.primary, fontWeight: '600' },
   inlineCheckoutBtn: { marginTop: 12, backgroundColor: colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: 'flex-start' },
-  inlineCheckoutBtnText: { color: colors.white, fontWeight: '600', fontSize: 14 }
+  inlineCheckoutBtnText: { color: colors.white, fontWeight: '600', fontSize: 14 },
+  packTag: { fontSize: 11, color: colors.primary, fontWeight: '600', marginTop: 2 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 18,
+    padding: 6,
+  },
+  enlargedImg: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F9F9FB',
+  },
+  modalDetails: {
+    padding: 18,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.darkPurple,
+    marginBottom: 8,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  modalPrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.darkPurple,
+  },
+  modalMrp: {
+    fontSize: 14,
+    color: colors.mutedText,
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  discountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  modalBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.softPurple,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    gap: 6,
+  },
+  modalBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  modalBadgeValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.darkPurple,
+  },
+  modalDesc: {
+    fontSize: 13,
+    color: colors.mutedText,
+    lineHeight: 18,
+    marginTop: 4,
+  },
 });
