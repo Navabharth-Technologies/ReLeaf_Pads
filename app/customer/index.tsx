@@ -17,7 +17,7 @@ export default function CustomerChatScreen() {
     customers, currentCustomer, setCurrentCustomer,
     currentAddress, setCurrentAddress, saveNewCustomer, createOrder, markOrderAsPaid,
     orders, deliveryPartners,
-    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal
+    coupons, appliedCoupon, applyCoupon, removeCoupon, getCartTotal, fetchProducts
   } = useStore();
 
   const [inputText, setInputText] = useState('');
@@ -27,6 +27,10 @@ export default function CustomerChatScreen() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   // Find active order for the current customer
   const activeOrder = currentCustomer
@@ -567,7 +571,7 @@ export default function CustomerChatScreen() {
 
           {item.type === 'products' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
-              {products.filter(p => p.active).map(p => {
+              {(products.length > 0 ? (products.some(p => p.active) ? products.filter(p => p.active) : products) : []).map(p => {
                 const isOut = p.stockStatus === 'OUT_OF_STOCK';
                 return (
                   <View key={p.id} style={styles.productCard}>

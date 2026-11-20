@@ -1066,14 +1066,14 @@ export const useStore = create<AppState>()(
               }));
               set({ products: mappedData });
             } else {
-              alert('Error: Data is not an array. Please check backend.');
+              // alert suppressed
             }
           } catch (e) {
-            alert('JSON Parse Error: ' + text.substring(0, 100));
+            // alert suppressed
           }
         } catch (error: any) {
           console.error('Failed to fetch products from backend:', error);
-          alert('Network Fetch Error: ' + error.message);
+          // alert suppressed
         }
       }
     }),
